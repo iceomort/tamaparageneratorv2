@@ -8,6 +8,38 @@ import streamlit as st
 with open('data.json') as f:
     data = json.load(f)
 
+
+# ── Character type mapping (Land / Water / Sky / Jade) ────────────────────────
+CHAR_TYPES = {
+    # LAND adults
+    'MEOWTCHI': 'land', 'POCHITCHI': 'land', 'GUMAX': 'land', 'RATCHI': 'land',
+    'MAMETCHI': 'land', 'MIMITCHI': 'land', 'MOLMOTCHI': 'land', 'SHEEPTCHI': 'land',
+    'LEOPATCHI': 'land', 'SEBIRETCHI': 'land', 'ELIZARDOTCHI': 'land', 'HEAVYTCHI': 'land',
+    'FURAWATCHI': 'land', 'POTSUNENTCHI': 'land', 'TUSTUSTCHI': 'land', 'SHIGEMI-SAN': 'land',
+    'CHODRACOTCHI': 'land',
+    # WATER adults
+    'IRUKATCHI': 'water', 'KAMETCHI': 'water', 'KUJIRATCHI': 'water', 'URUOTCHI': 'water',
+    'AXOLOPATCHI': 'water', 'IMORITCHI': 'water', 'KAWAZUTCHI': 'water', 'BEAVERTCHI': 'water',
+    'TACHUTCHI': 'water', 'SHARKTCHI': 'water', 'ANKOTCHI': 'water', 'OTOTOTCHI': 'water',
+    'KURARATCHI': 'water', 'MENDAKOTCHI': 'water', 'AMEFURATCHI': 'water', 'GUSOKUTCHI': 'water',
+    'MERMARINTCHI': 'water',
+    # SKY adults
+    'HORHOTCHI': 'sky', 'MONGATCHI': 'sky', 'EAGLETCHI': 'sky', 'BATCHI': 'sky',
+    'PEACOTCHI': 'sky', 'BATATCHI': 'sky', 'KUCHIPATCHI': 'sky', 'KIWITCHI': 'sky',
+    'PAPILLOTCHI': 'sky', 'KABUTOTCHI': 'sky', 'TENTOTCHI': 'sky', 'HATCHITCHI': 'sky',
+    'GEMTCHI': 'sky', 'ORETATCHI': 'sky', 'ISHIKOROTCHI': 'sky', 'MAGMATCHI': 'sky',
+    'YAYACORNTCHI': 'sky',
+    # JADE adults
+    'FOREST HORHOTCHI': 'jade', 'KONKOTCHI': 'jade', 'TIGAOTCHI': 'jade', 'TANOONTCHI': 'jade',
+    'LESSAPANTCHI': 'jade', 'KANOKOTCHI': 'jade', 'SUIGYUTCHI': 'jade', 'PANBOOTCHI': 'jade',
+    'KACHITCHI': 'jade', 'TOKIPATCHI': 'jade', 'FOREST KUCHIPATCHI': 'jade', 'SPARROTCHI': 'jade',
+    'SHIITAKETCHI': 'jade', 'PEATCHI': 'jade', 'NAPPATCHI': 'jade', 'RUSHRADITCHI': 'jade',
+    'TATSUTCHI': 'jade',
+}
+
+def get_char_type(chara):
+    return CHAR_TYPES.get(chara['Name'].upper(), 'other')
+
 st.set_page_config(page_title="Tamagotchi Paradise Genes Generator", layout="wide")
 
 # ── CSS for the image picker grid ──────────────────────────────────────────────
@@ -175,11 +207,6 @@ def thumb_src(chara, kind='body'):
 # ── Image picker component ─────────────────────────────────────────────────────
 
 def image_picker(label, characters, key, kind='body'):
-    """
-    Renders a scrollable image-card grid. Returns the selected character dict.
-    Uses st.session_state[key] to track selection.
-    """
-    # Initialise state
     if key not in st.session_state or st.session_state[key] not in characters:
         st.session_state[key] = characters[0] if characters else None
 
@@ -187,17 +214,11 @@ def image_picker(label, characters, key, kind='body'):
 
     st.markdown(f'<div class="picker-header">{label}</div>', unsafe_allow_html=True)
 
-    # Show currently selected character name as badge
     if selected:
         src = thumb_src(selected, kind)
         img_tag = f'<img src="{src}" style="width:24px;height:24px;image-rendering:pixelated;" />' if src else ""
-        st.markdown(
-            f'<div class="selected-badge">{img_tag} {selected["Name"]}</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown(f'<div class="selected-badge">{img_tag} {selected["Name"]}</div>', unsafe_allow_html=True)
 
-    # Build grid HTML — each card is a form button
-    # We render them as st.button calls in columns for clickability
     cols_per_row = 6
     rows = [characters[i:i+cols_per_row] for i in range(0, len(characters), cols_per_row)]
 
@@ -211,7 +232,6 @@ def image_picker(label, characters, key, kind='body'):
                     border = "2px solid #6366f1" if is_selected else "2px solid transparent"
                     bg = "rgba(99,102,241,0.2)" if is_selected else "rgba(255,255,255,0.04)"
 
-                    # Image display (non-clickable)
                     if src:
                         st.markdown(
                             f'''<div style="text-align:center;padding:4px;border-radius:8px;
@@ -221,26 +241,13 @@ def image_picker(label, characters, key, kind='body'):
                             </div>''',
                             unsafe_allow_html=True
                         )
-                    else:
-                        st.markdown(
-                            f'''<div style="text-align:center;padding:4px;border-radius:8px;
-                                border:{border};background:{bg};margin-bottom:2px;
-                                width:40px;height:40px;line-height:40px;color:#666;">?</div>''',
-                            unsafe_allow_html=True
-                        )
 
-                    # Clickable button (just shows name, styled small)
-                    btn_label = chara['Name'][:10]
-                    if st.button(
-                        btn_label,
-                        key=f"pick_{key}_{chara['Id']}",
-                        use_container_width=True
-                    ):
+                    btn_label = chara['Name'][:8]
+                    if st.button(btn_label, key=f"pick_{key}_{chara['Id']}", use_container_width=True):
                         st.session_state[key] = chara
                         st.rerun()
 
     return st.session_state[key]
-
 
 # ── Generate composite image ───────────────────────────────────────────────────
 
@@ -283,32 +290,68 @@ def generate_image(body, eyes, color):
 
 # ── Layout ─────────────────────────────────────────────────────────────────────
 
-st.title('Tamagotchi Paradise Genes Generator')
-st.header('Generate')
+# Pick 2 random adult tamas for the header (fixed per session)
+if 'header_tamas' not in st.session_state:
+    adults = [c for c in data['Characters'] if c['Stage'] == 5]
+    st.session_state['header_tamas'] = random.sample(adults, 2)
+
+header_tamas = st.session_state['header_tamas']
+left_src = composite_thumb(header_tamas[0])
+right_src = composite_thumb(header_tamas[1])
+
+st.markdown(f'''
+<div style="text-align:center; padding: 16px 0 4px 0;">
+    <div style="display:inline-flex; align-items:center; gap:12px;">
+        <img src="{left_src}" style="width:56px;height:56px;image-rendering:pixelated;" />
+        <span style="font-size:1.8rem; font-weight:800; letter-spacing:0.02em;">Tamagotchi Paradise Genes Generator</span>
+        <img src="{right_src}" style="width:56px;height:56px;image-rendering:pixelated;" />
+    </div>
+    <div style="font-size:0.78rem; color:#888; margin-top:4px;">
+        created by <a href="https://github.com/scalynko/tamaparagenerator" target="_blank" style="color:#a5b4fc;">Scalynko</a>
+        &nbsp;/&nbsp; modified by <em>Iceomort</em> (24 Feb 2026)
+    </div>
+</div>
+''', unsafe_allow_html=True)
 
 # ── Options ───────────────────────────────────────────────────────────────────
 with st.container(border=True):
+    fc1, fc2, fc3, fc4 = st.columns(4)
+    with fc1:
+        opt_include_land = st.checkbox('🌿 Land', True)
+    with fc2:
+        opt_include_water = st.checkbox('💧 Water', True)
+    with fc3:
+        opt_include_sky = st.checkbox('☁️ Sky', True)
+    with fc4:
+        opt_include_jade = st.checkbox('🎋 Jade', True)
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         opt_include_non_breedable = st.checkbox('Include non-breedable eyes')
     with c2:
-        opt_include_jade_charas = st.checkbox('Include Jade Forest-exclusive characters', True)
+        opt_include_external_eyes = st.checkbox('Include Lab Tama eyes')
     with c3:
-        opt_include_external_eyes = st.checkbox('Include Lab Tama eyes', True)
-    with c4:
         opt_include_external_bodies = st.checkbox('Include Lab Tama bodies')
+    with c4:
+        opt_include_non_adult_bodies = st.checkbox('Include non-adult bodies')
 
 # ── Filtering ─────────────────────────────────────────────────────────────────
 
 def chara_filter(chara):
-    if not opt_include_jade_charas:
-        if chara['IsJade']:
-            return False
+    ctype = get_char_type(chara)
+    if ctype == 'land' and not opt_include_land: return False
+    if ctype == 'water' and not opt_include_water: return False
+    if ctype == 'sky' and not opt_include_sky: return False
+    if ctype == 'jade' and not opt_include_jade: return False
+    # For non-adults (kids, young, baby), follow jade flag for jade chars
+    if chara['IsJade'] and not opt_include_jade: return False
     return True
 
 def body_filter(chara):
     if not opt_include_external_bodies:
         if chara['IsExternal']:
+            return False
+    if not opt_include_non_adult_bodies:
+        if chara['Stage'] < 5:
             return False
     return True
 
@@ -401,20 +444,77 @@ with st.container(border=True):
 
 # ── History ────────────────────────────────────────────────────────────────────
 st.header('History')
+
+if 'selected_to_delete' not in st.session_state:
+    st.session_state['selected_to_delete'] = set()
+
 with st.container():
     history_list = list(st.session_state['history'].items())
     history_list.reverse()
 
     if history_list:
+        # Action buttons
+        col_del, col_rand, col_clear = st.columns([1, 1, 1])
+        n_selected = len(st.session_state['selected_to_delete'])
+        with col_del:
+            if st.button(f'🗑️ Delete selected ({n_selected})', disabled=n_selected == 0, use_container_width=True):
+                for k in st.session_state['selected_to_delete']:
+                    st.session_state['history'].pop(k, None)
+                st.session_state['selected_to_delete'] = set()
+                st.rerun()
+        with col_rand:
+            if st.button(f'🎲 Randomise selected ({n_selected})', disabled=n_selected == 0, use_container_width=True):
+                selected_entries = [st.session_state['history'][k] for k in st.session_state['selected_to_delete'] if k in st.session_state['history']]
+                if selected_entries:
+                    if len(selected_entries) == 1:
+                        # 1 tama selected: mix its body/eyes with the full available pool
+                        entry = selected_entries[0]
+                        tama_body = next((c for c in bodies_list if c['Name'] == entry['selected_body']), None)
+                        tama_eyes = next((c for c in eyes_list if c['Name'] == entry['selected_eyes']), None)
+                        tama_color = next((i for i, p in enumerate(data['Palettes']) if p['Name'] == entry['selected_color']), None)
+                        # Randomly decide: keep body or eyes from the selected tama, randomise the other
+                        if random.random() < 0.5:
+                            if tama_body: st.session_state['body'] = tama_body
+                            st.session_state['eyes'] = random.choice(eyes_list)
+                        else:
+                            st.session_state['body'] = random.choice(bodies_list)
+                            if tama_eyes: st.session_state['eyes'] = tama_eyes
+                        # Color: 50/50 between tama's color or fully random
+                        if tama_color is not None and random.random() < 0.5:
+                            st.session_state['color_idx'] = tama_color
+                        else:
+                            st.session_state['color_idx'] = random.randint(0, len(data['Palettes']) - 1)
+                    else:
+                        # 2+ selected: pick body, eyes, color independently from the selected pool
+                        body_pool = [next((c for c in bodies_list if c['Name'] == e['selected_body']), None) for e in selected_entries]
+                        eyes_pool = [next((c for c in eyes_list if c['Name'] == e['selected_eyes']), None) for e in selected_entries]
+                        color_pool = [next((i for i, p in enumerate(data['Palettes']) if p['Name'] == e['selected_color']), None) for e in selected_entries]
+                        body_pool = [b for b in body_pool if b]
+                        eyes_pool = [e for e in eyes_pool if e]
+                        color_pool = [c for c in color_pool if c is not None]
+                        if body_pool: st.session_state['body'] = random.choice(body_pool)
+                        if eyes_pool: st.session_state['eyes'] = random.choice(eyes_pool)
+                        if color_pool: st.session_state['color_idx'] = random.choice(color_pool)
+                    st.rerun()
+        with col_clear:
+            if st.button('✕ Clear all history', use_container_width=True):
+                st.session_state['history'] = OrderedDict()
+                st.session_state['selected_to_delete'] = set()
+                st.rerun()
+
         cols = st.columns(min(len(history_list), 6))
-        for idx, (k, v) in enumerate(history_list[:18]):  # show up to 18
+        for idx, (k, v) in enumerate(history_list[:18]):
             with cols[idx % 6]:
-                st.markdown('<div class="history-del">', unsafe_allow_html=True)
+                is_checked = k in st.session_state['selected_to_delete']
+                if st.checkbox('', value=is_checked, key=f'chk_{k}'):
+                    st.session_state['selected_to_delete'].add(k)
+                else:
+                    st.session_state['selected_to_delete'].discard(k)
                 st.image(v['image'], width=96)
                 st.caption(f"{v['selected_body']} × {v['selected_eyes']}\n{v['selected_color']}")
-                if st.button('✕', key=f'del_{k}', use_container_width=True):
-                    del st.session_state['history'][k]
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.write("No history yet.")
+
+# ── Footer ─────────────────────────────────────────────────────────────────────
+st.markdown("---")
+st.caption("Original Generator created by [Scalynko](https://github.com/scalynko/tamaparagenerator) — I just made some edits! - ice")
