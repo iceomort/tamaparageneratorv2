@@ -31,6 +31,7 @@
   }
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { background: var(--bg); }
 body {
   margin: 0;
@@ -90,6 +91,11 @@ button { font: inherit; color: inherit; }
 details.picker { border: 1px solid var(--border); border-radius: 8px; }
 details.picker summary { cursor: pointer; padding: 8px 12px; font-size: 15px; }
 .tama-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; padding: 8px 12px 12px; max-height: 420px; overflow-y: auto; }
+.pick-search-wrap { padding: 8px 12px 0; }
+.pick-search { width: 100%; padding: 8px 12px; font: inherit; font-size: 15px; color: var(--text); background: var(--bg-2); border: 1px solid transparent; border-radius: 8px; }
+.pick-search:focus { border-color: var(--accent); outline: none; }
+.pick-empty { padding: 4px 12px 12px; font-size: 14px; color: var(--muted); margin: 0; }
+@media (max-width: 760px) { .tama-grid { max-height: 62vh; } }
 .tama-card {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   padding: 6px 4px;
@@ -260,7 +266,7 @@ const getCharType = c => CHAR_TYPES[c.Name.toUpperCase()] || 'other';
 
 const HISTORY_SHOWN = 18;
 const HISTORY_STORED = 100;
-const APP_VERSION = 'v3.0';          // bump when you ship a change
+const APP_VERSION = 'v3.2';          // bump when you ship a change
 const APP_UPDATED = '7 Oct 2026';    // and update the date here
 const STORAGE_KEY = 'tamapara-history-v1';
 const FAV_KEY = 'tamapara-favorites-v1';
@@ -405,8 +411,21 @@ function start(data, palettes, sprites) {
     // Body colour = most common palette index in the body sprite, ignoring transparent (0) and outline (1).
     const m = sprites[c.Id].body, counts = new Array(16).fill(0);
     for (let i = 0; i < m.idx.length; i++) if (m.opaque[i] && m.idx[i] > 1) counts[m.idx[i]]++;
-    const fillIdx = counts.indexOf(Math.max(...counts));
-    const rgb = palettes[c.Id].body[fillIdx] || [200, 200, 200];
+    const orig = palettes[c.Id].body;
+    let fillIdx = counts.indexOf(Math.max(...counts));
+    // Two-tone sprites (e.g. Konkotchi, mostly white with yellow): use the sprite colour closest to
+    // the colour group they belong to, so the pill matches what you look for.
+    const ov = COLOUR_OVERRIDES[c.Name.toUpperCase()];
+    if (ov && c.Name !== 'YAYACORNTCHI') {
+      const target = hexToRgb(GROUP_HEX[ov][0]);
+      let bestDist = Infinity;
+      counts.forEach((n, i) => {
+        if (!n || !orig[i]) return;
+        const dist = target.reduce((sum, v, k) => sum + (v - orig[i][k]) ** 2, 0);
+        if (dist < bestDist) { bestDist = dist; fillIdx = i; }
+      });
+    }
+    const rgb = orig[fillIdx] || [200, 200, 200];
 
     const out = document.createElement('canvas');
     out.width = EYES_W; out.height = EYES_H;
@@ -517,6 +536,7 @@ function start(data, palettes, sprites) {
     favorites: new Map(),      // key -> { bodyId, eyesId, colorName, nickname, canvas }
     view: 'history',           // which saved list is showing: 'history' or 'favorites'
     renaming: null,            // key of the favourite being renamed
+    search: { body: '', eyes: '' },   // text typed into each picker's search box
     headerTamas: (() => {
       const adults = chars.filter(c => c.Stage === 5);
       const a = randInt(adults.length);
@@ -907,7 +927,9 @@ function start(data, palettes, sprites) {
     const badge = selected
       ? `<div class="selected-badge"><canvas ${thumbAttr(selected.Id)}></canvas>${esc(selected.Name)}</div>`
       : '';
-    const cards = list.map(c => `
+    const q = (state.search[key] || '').trim().toLowerCase();
+    const shown = q ? list.filter(c => c.Name.toLowerCase().includes(q)) : list;
+    const cards = shown.map(c => `
       <button type="button" class="tama-card${selected && c.Id === selected.Id ? ' selected' : ''}" data-pick="${key}" data-id="${c.Id}" title="${esc(c.Name)}">
         <canvas ${thumbAttr(c.Id)}></canvas>
         <span class="label">${esc(c.Name)}</span>
@@ -916,7 +938,9 @@ function start(data, palettes, sprites) {
       <div class="picker-header">${label}</div>
       ${badge}
       <details class="picker" data-details="${key}"${openPickers.has(key) ? ' open' : ''}>
-        <summary>Pick ${label}</summary>
+        <summary>Pick ${label} (${list.length})</summary>
+        <div class="pick-search-wrap"><input type="search" class="pick-search" data-search="${key}" value="${esc(state.search[key] || '')}" placeholder="Search ${label.toLowerCase()} by name" aria-label="Search ${label.toLowerCase()} by name" autocomplete="off"></div>
+        <p class="pick-empty" data-empty="${key}"${shown.length ? ' hidden' : ''}>No ${label.toLowerCase()} match that name.</p>
         <div class="tama-grid${isEyes ? ' eyes-grid' : ''}">${cards}</div>
       </details>`;
   }
@@ -1058,6 +1082,7 @@ function start(data, palettes, sprites) {
   app.addEventListener('click', e => {
     const pick = e.target.closest('[data-pick]');
     if (pick) {
+      if (pick.dataset.pick in state.search) state.search[pick.dataset.pick] = '';
       if (pick.dataset.pick === 'color') state.colorIdx = Number(pick.dataset.idx);
       else if (pick.dataset.pick === 'body') state.body = byId.get(Number(pick.dataset.id));
       else state.eyes = byId.get(Number(pick.dataset.id));
@@ -1109,6 +1134,22 @@ function start(data, palettes, sprites) {
       if (t.checked) state.selected.add(t.dataset.hist); else state.selected.delete(t.dataset.hist);
       return render();
     }
+  });
+
+  // Picker search filters the cards in place, so typing never re-renders the page or drops focus.
+  app.addEventListener('input', e => {
+    const key = e.target.dataset && e.target.dataset.search;
+    if (!key) return;
+    state.search[key] = e.target.value;
+    const q = e.target.value.trim().toLowerCase();
+    const root = e.target.closest('details');
+    let visible = 0;
+    root.querySelectorAll('.tama-card').forEach(card => {
+      const hit = !q || card.title.toLowerCase().includes(q);
+      card.hidden = !hit;
+      if (hit) visible++;
+    });
+    root.querySelector('[data-empty]').hidden = visible > 0;
   });
 
   app.addEventListener('keydown', e => {
