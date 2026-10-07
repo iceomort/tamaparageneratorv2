@@ -102,6 +102,9 @@ details.picker summary { cursor: pointer; padding: 8px 12px; font-size: 15px; }
 .tama-card:hover { background: var(--card-hover); border-color: var(--border); }
 .tama-card.selected { background: var(--accent-soft); border-color: var(--accent); }
 .tama-card canvas { width: 40px; height: 40px; }
+.tama-card canvas.eyes-thumb { width: 88px; height: 44px; max-width: 100%; }
+.tama-grid.eyes-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+.selected-badge canvas.eyes-thumb { width: 44px; height: 22px; }
 .tama-card .label { font-size: 9px; text-align: center; line-height: 1.2; color: var(--muted); word-break: break-word; }
 .tama-card.selected .label { color: var(--accent-text); font-weight: 700; }
 
@@ -113,6 +116,26 @@ select {
   background: var(--bg-2); border: 1px solid transparent; border-radius: 8px;
 }
 select:hover { border-color: var(--accent); }
+
+/* colour picker */
+canvas.swatch { width: 24px; height: 32px; flex: none; border-radius: 4px; }
+.selected-badge canvas.swatch { width: 12px; height: 16px; border-radius: 2px; }
+.color-list { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px 12px; max-height: 480px; overflow-y: auto; }
+.color-item {
+  display: grid; grid-template-columns: 24px 96px 1fr; gap: 12px; align-items: center;
+  width: 100%; text-align: left;
+  padding: 6px 8px; border-radius: 8px;
+  border: 2px solid transparent; background: var(--card); cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.color-item:hover { background: var(--card-hover); border-color: var(--border); }
+.color-item.selected { background: var(--accent-soft); border-color: var(--accent); }
+.color-item .cname { font-size: 14px; font-weight: 600; }
+.color-item.selected .cname { color: var(--accent-text); }
+.cthumbs { display: flex; flex-wrap: wrap; gap: 2px 4px; align-items: center; min-height: 32px; }
+.cthumbs canvas { width: 36px; height: 36px; }
+.cnone { font-size: 12px; color: var(--muted); }
+@media (max-width: 760px) { .color-item { grid-template-columns: 24px 1fr; } .color-item .cthumbs { grid-column: 1 / -1; } }
 
 /* preview */
 .preview { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; }
@@ -129,7 +152,47 @@ h2 { font-size: 1.75rem; margin: 32px 0 12px; font-weight: 700; }
 .history-item canvas { width: 96px; max-width: 100%; height: auto; display: block; margin: 4px 0; }
 .history-item .cap { color: var(--muted); line-height: 1.3; }
 .history-item .cap span { display: block; }
+.history-item .cap .cap-name { color: var(--text); font-weight: 600; }
 .empty { color: var(--muted); }
+
+/* history: click-through to the growing guide */
+.hist-hint { font-size: 13px; color: var(--muted); margin: -4px 0 12px; }
+button.hist-open { display: block; padding: 0; margin: 4px 0; border: 2px solid transparent; border-radius: 8px; background: none; cursor: pointer; }
+button.hist-open:hover { border-color: var(--accent); background: var(--card); }
+button.hist-open canvas { margin: 0; }
+
+/* growing guide dialog */
+dialog#guide {
+  width: min(560px, calc(100% - 24px)); max-height: min(86vh, 760px);
+  padding: 0; border: 1px solid var(--border); border-radius: 12px;
+  background: var(--bg); color: var(--text);
+}
+dialog#guide::backdrop { background: rgba(0, 0, 0, 0.55); }
+.guide-head { display: flex; gap: 16px; align-items: center; padding: 20px 20px 12px; position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--border); }
+.guide-head canvas { width: 96px; height: auto; flex: none; }
+.guide-head h3 { margin: 0 0 4px; font-size: 1.15rem; line-height: 1.25; }
+.guide-head p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.guide-close { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg); cursor: pointer; line-height: 1; }
+.guide-close:hover { border-color: var(--accent); color: var(--accent-text); }
+.guide-body { padding: 8px 20px 20px; }
+.chart-tabs { display: inline-flex; margin: 12px 0 4px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.chart-tabs button { padding: 6px 12px; border: 0; background: var(--bg); cursor: pointer; font-size: 13px; }
+.chart-tabs button + button { border-left: 1px solid var(--border); }
+.chart-tabs button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
+.chart-tabs button:hover:not([aria-pressed="true"]) { background: var(--card-hover); }
+.guide-body ol { margin: 8px 0 0; padding-left: 22px; }
+.guide-body li { padding: 8px 0 8px 4px; }
+.guide-body li::marker { color: var(--accent-text); font-weight: 700; }
+.guide-body .step-title { font-weight: 600; }
+.guide-body .step-hint { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
+.parents { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end; margin-top: 8px; }
+.parents .sep { align-self: center; font-size: 13px; color: var(--muted); padding: 0 2px; }
+.parent { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 72px; padding: 4px 2px; border-radius: 8px; background: var(--card); }
+.parent.eyes-parent { background: var(--accent-soft); }
+.parent canvas { width: 40px; height: 40px; }
+.parent span { font-size: 9px; line-height: 1.2; text-align: center; color: var(--muted); word-break: break-word; }
+.guide-note { margin: 12px 0 0; padding: 8px 12px; border-radius: 8px; font-size: 13px; background: var(--card); border-left: 3px solid var(--accent); }
+.guide-source { margin: 16px 0 0; font-size: 12px; color: var(--muted); }
 
 footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 14px; color: var(--muted); }
 .loading { text-align: center; color: var(--muted); padding: 48px 0; }
@@ -145,6 +208,7 @@ footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--border
 </head>
 <body>
 <main id="app"><div class="loading">Loading sprites…</div></main>
+<dialog id="guide" aria-labelledby="guide-title"></dialog>
 
 <script>
 'use strict';
@@ -302,6 +366,44 @@ function start(data, palettes, sprites) {
     if (!thumbCache.has(c.Id)) thumbCache.set(c.Id, generate(c, c, pals[0]));
     return thumbCache.get(c.Id);
   }
+  // Eyes-only thumbnail: the eye sprite cropped to its pixels, on a pill in the owner's body colour.
+  const EYES_W = 44, EYES_H = 22;
+  const eyesThumbCache = new Map();
+  function eyesThumb(c) {
+    if (eyesThumbCache.has(c.Id)) return eyesThumbCache.get(c.Id);
+    const img = sprites[c.Id].eyes;
+    const tmp = document.createElement('canvas');
+    tmp.width = img.width; tmp.height = img.height;
+    const tctx = tmp.getContext('2d', { willReadFrequently: true });
+    tctx.drawImage(img, 0, 0);
+    const px = tctx.getImageData(0, 0, img.width, img.height).data;
+    let x0 = img.width, y0 = img.height, x1 = -1, y1 = -1;
+    for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
+      if (px[(y * img.width + x) * 4 + 3]) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    }
+    // Body colour = most common palette index in the body sprite, ignoring transparent (0) and outline (1).
+    const m = sprites[c.Id].body, counts = new Array(16).fill(0);
+    for (let i = 0; i < m.idx.length; i++) if (m.opaque[i] && m.idx[i] > 1) counts[m.idx[i]]++;
+    const fillIdx = counts.indexOf(Math.max(...counts));
+    const rgb = palettes[c.Id].body[fillIdx] || [200, 200, 200];
+
+    const out = document.createElement('canvas');
+    out.width = EYES_W; out.height = EYES_H;
+    const ctx = out.getContext('2d');
+    ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+    const r = EYES_H / 2;
+    for (let y = 0; y < EYES_H; y++) {   // stepped (non-antialiased) pill to keep the pixel look
+      const dy = y + 0.5 - r;
+      const inset = Math.round(r - Math.sqrt(Math.max(0, r * r - dy * dy)));
+      ctx.fillRect(inset, y, EYES_W - inset * 2, 1);
+    }
+    if (x1 >= 0) {
+      const w = x1 - x0 + 1, h = y1 - y0 + 1;
+      ctx.drawImage(img, x0, y0, w, h, Math.round((EYES_W - w) / 2), Math.round((EYES_H - h) / 2), w, h);
+    }
+    eyesThumbCache.set(c.Id, out);
+    return out;
+  }
   function drawInto(target, source) {
     target.width = source.width; target.height = source.height;
     target.getContext('2d').drawImage(source, 0, 0);
@@ -310,6 +412,79 @@ function start(data, palettes, sprites) {
     const c = document.createElement('canvas');
     drawInto(c, source);
     return c;
+  }
+
+  // Which adult characters belong to each colour, judged by how they look: the hex of the
+  // sprite's main body colour, looked up in the table below. (The game's own palette indices
+  // disagree with how some sprites look, e.g. Furawatchi is stored one step off Hot Pink.)
+  const GROUP_HEX = {
+    'Red': ['ff8e8c', 'ff6563'],
+    'Hot Pink': ['ff82b5', 'ff5994'],
+    'Purple': ['de8aff', 'ad61f7'],
+    'Indigo': ['7375ef'],
+    'Blue': ['4aa6ff'],
+    'Teal': ['adefef', '8cd7d6'],
+    'Green': ['7bdb3a'],
+    'Yellow': ['ffeb52'],
+    'Orange': ['ffa663', 'ffd28c'],
+    'Light Pink': ['ffd2ef', 'ffb2e6'],
+    'Lavender': ['b5b6ff'],
+    'Sky Blue': ['73ceff', 'adebff'],
+    'Light Green': ['adeb7b'],
+    'Light Yellow': ['fff394', 'fffbde'],
+    'White': ['ffffff', 'fff7f7', 'fffbff', 'e6e7e6'],
+    'Gray': ['a5a6bd', 'cecee6'],
+  };
+  // Sprites where an accent colour outweighs the body colour, so the body-hex rule gets them wrong.
+  const COLOUR_OVERRIDES = {
+    'SPARROTCHI': 'Orange', 'KONKOTCHI': 'Yellow', 'PAPILLOTCHI': 'Light Pink',
+    'SHIGEMI-SAN': 'Teal', 'NAPPATCHI': 'Light Green', 'YAYACORNTCHI': 'Purple',
+  };
+  const hexToRgb = h => [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
+  const GROUP_COLOURS = [];
+  for (const [g, list] of Object.entries(GROUP_HEX)) for (const h of list) GROUP_COLOURS.push({ g, rgb: hexToRgb(h) });
+
+  function colourGroupFor(c) {
+    if (COLOUR_OVERRIDES[c.Name.toUpperCase()]) return COLOUR_OVERRIDES[c.Name.toUpperCase()];
+    const m = sprites[c.Id].body, orig = palettes[c.Id].body;
+    const counts = new Array(orig.length).fill(0);
+    for (let i = 0; i < m.idx.length; i++) if (m.opaque[i] && m.idx[i] > 1) counts[m.idx[i]]++;
+    const rgb = orig[counts.indexOf(Math.max(...counts))];
+    let best = null, bestDist = Infinity;       // exact hex match wins; new sprites fall back to nearest
+    for (const gc of GROUP_COLOURS) {
+      const dist = gc.rgb.reduce((sum, v, k) => sum + (v - rgb[k]) ** 2, 0);
+      if (dist < bestDist) { bestDist = dist; best = gc.g; }
+    }
+    return best;
+  }
+
+  const colourChars = pals.map(() => []);
+  for (const c of chars) {
+    if (c.Stage !== 5 || c.IsExternal || c.Name === 'BBMARUTCHI') continue; // adults only; Lab Tama and non-breedable BBMARUTCHI left out
+    const pi = pals.findIndex(q => q.Name === colourGroupFor(c));
+    if (pi > 0) colourChars[pi].push(c);
+  }
+
+  // Swatch: four bands (light, mid, dark, darkest) like the strips on the community colour chart.
+  const swatchCache = new Map();
+  function swatch(pi) {
+    if (swatchCache.has(pi)) return swatchCache.get(pi);
+    const cv = document.createElement('canvas');
+    cv.width = 1; cv.height = 4;
+    const ctx = cv.getContext('2d');
+    let bands;
+    if (pi === 0) { // Original: no palette of its own, so show a spread of colours
+      bands = ['Red', 'Yellow', 'Green', 'Blue'].map(n => {
+        const p = pals.find(q => q.Name === n);
+        return p ? [p.Colors[12], p.Colors[13], p.Colors[14]] : [160, 160, 160];
+      });
+    } else {
+      const col = pals[pi].Colors;
+      bands = [2, 3, 4, 7].map(i => [col[i * 4], col[i * 4 + 1], col[i * 4 + 2]]);
+    }
+    bands.forEach((rgb, y) => { ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`; ctx.fillRect(0, y, 1, 1); });
+    swatchCache.set(pi, cv);
+    return cv;
   }
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -417,16 +592,235 @@ function start(data, palettes, sprites) {
   }
 
   // ── Rendering ──────────────────────────────────────────────────────────────
+  // ── Growing guide ──────────────────────────────────────────────────────────
+  // Data from Neo_Mametchi's Tamagotchi Paradise and Jade Forest growth charts. Each path is one
+  // young stage; its adults are listed from the top care tier down (tier 0 = 5 food, 5 happy, 0 mistakes).
+  const GROWTH_PATHS = [
+    { field: 'Land', young: 'Roar Young', food: 'Meat', adults: ['MEOWTCHI', 'POCHITCHI', 'GUMAX', 'RATCHI'] },
+    { field: 'Land', young: 'Toddle Young', food: 'Carrot', adults: ['MAMETCHI', 'MIMITCHI', 'MOLMOTCHI', 'SHEEPTCHI'] },
+    { field: 'Land', young: 'Lick Young', food: 'Worm', adults: ['LEOPATCHI', 'SEBIRETCHI', 'ELIZARDOTCHI', 'HEAVYTCHI'] },
+    { field: 'Land', young: 'Sprout Young', food: null, adults: ['FURAWATCHI', 'POTSUNENTCHI', 'TUSTUSTCHI', 'SHIGEMI-SAN'] },
+    { field: 'Water', young: 'Glide Young', food: 'Seafood', adults: ['IRUKATCHI', 'KAMETCHI', 'KUJIRATCHI', 'URUOTCHI'] },
+    { field: 'Water', young: 'Leap Young', food: 'Seaweed', adults: ['AXOLOPATCHI', 'IMORITCHI', 'KAWAZUTCHI', 'BEAVERTCHI'] },
+    { field: 'Water', young: 'Paddle Young', food: 'Shrimp', adults: ['TACHUTCHI', 'SHARKTCHI', 'ANKOTCHI', 'OTOTOTCHI'] },
+    { field: 'Water', young: 'Float Young', food: null, adults: ['KURARATCHI', 'MENDAKOTCHI', 'AMEFURATCHI', 'GUSOKUTCHI'] },
+    { field: 'Sky', young: 'Flap Young', food: 'Chicken', adults: ['HORHOTCHI', 'MONGATCHI', 'EAGLETCHI', 'BATCHI'] },
+    { field: 'Sky', young: 'Chirp Young', food: 'Corn', adults: ['PEACOTCHI', 'BATATCHI', 'KUCHIPATCHI', 'KIWITCHI'] },
+    { field: 'Sky', young: 'Bumble Young', food: 'Syrup', adults: ['PAPILLOTCHI', 'KABUTOTCHI', 'TENTOTCHI', 'HATCHITCHI'] },
+    { field: 'Sky', young: 'Rocky Young', food: null, adults: ['GEMTCHI', 'ORETATCHI', 'ISHIKOROTCHI', 'MAGMATCHI'] },
+    { field: 'Forest', young: 'Roar Young', food: 'Peking Meat', adults: ['FOREST HORHOTCHI', 'KONKOTCHI', 'TIGAOTCHI', 'TANOONTCHI'] },
+    { field: 'Forest', young: 'Toddle Young', food: 'Bamboo Grass', adults: ['LESSAPANTCHI', 'KANOKOTCHI', 'SUIGYUTCHI', 'PANBOOTCHI'] },
+    { field: 'Forest', young: 'Chirp Young', food: 'Pomegranate', adults: ['KACHITCHI', 'TOKIPATCHI', 'FOREST KUCHIPATCHI', 'SPARROTCHI'] },
+    { field: 'Forest', young: 'Sprout Young', food: null, adults: ['SHIITAKETCHI', 'PEATCHI', 'NAPPATCHI', 'RUSHRADITCHI'] },
+  ];
+  const BODY_GROWTH = {}, YOUNG_GROWTH = {};
+  // Which growth chart each field appears on: Paradise has Land, Water and Sky; Jade Forest has Forest, Land and Water.
+  const CHARTS_FOR_FIELD = { Land: ['paradise', 'jade'], Water: ['paradise', 'jade'], Sky: ['paradise'], Forest: ['jade'] };
+  const CHART_LABEL = { paradise: 'Paradise chart', jade: 'Jade Forest chart' };
+  const CHART_SOURCE = { paradise: "Neo_Mametchi's Tamagotchi Paradise Growth Chart", jade: "Neo_Mametchi's Tamagotchi Paradise Jade Forest Growth Chart" };
+  for (const path of GROWTH_PATHS) {
+    path.charts = CHARTS_FOR_FIELD[path.field];
+    path.adults.forEach((n, tier) => { BODY_GROWTH[n] = { ...path, tier }; });
+    YOUNG_GROWTH[((path.field === 'Forest' ? 'FOREST ' : '') + path.young).toUpperCase()] = path;
+  }
+  const SPECIAL_GROWTH = {
+    'CHODRACOTCHI': { charts: ['paradise'], field: 'Land', avoid: 'Sprout Young', connect: 'Connect your Pink Land shell with a Blue Water shell and a Purple Sky shell.' },
+    'MERMARINTCHI': { charts: ['paradise'], field: 'Water', avoid: 'Float Young', connect: 'Connect your Blue Water shell with a Pink Land shell and a Purple Sky shell.' },
+    'YAYACORNTCHI': { charts: ['paradise'], field: 'Sky', avoid: 'Rocky Young', connect: 'Connect your Purple Sky shell with a Pink Land shell and a Blue Water shell.' },
+    'TATSUTCHI': { charts: ['jade'], field: 'Forest', avoid: 'Sprout Young', connect: 'Connect your Jade Forest shell with two shells of different colours.' },
+  };
+  const KID_FIELD = { 'LAND KID': 'Land', 'WATER KID': 'Water', 'SKY KID': 'Sky', 'FOREST KID': 'Forest' };
+  const TIERS = [
+    ['5 food and 5 happy', 'Fill the hunger meter 5 times and the happy meter 5 times, with no care mistakes.'],
+    ['4 food and 4 happy, or 1 care mistake', 'Either fill the hunger meter 4 times and the happy meter 4 times, or make 1 care mistake.'],
+    ['2 to 5 care mistakes', 'Make between 2 and 5 care mistakes.'],
+    ['6 or more care mistakes', 'Make 6 or more care mistakes.'],
+  ];
+  const fieldName = f => f === 'Forest' ? 'Forest (Jade Forest)' : f;
+  const nice = n => n.toLowerCase().replace(/(^|\s)(\w)/g, (m, sp, ch) => sp + ch.toUpperCase());
+  const normName = n => n.toUpperCase().replace(/\s+/g, ' ').trim();
+
+  const fieldStep = f => ({
+    title: `Raise the baby in the ${fieldName(f)} field`,
+    hint: `Each 15 minutes spent in a field earns a cell for it, so spend the baby stage there.`,
+  });
+  // Food items that build each food cell, as listed on the growth charts.
+  const FOOD_ITEMS = {
+    'Meat': ['Big Meat', 'Small Meat', 'Steak'],
+    'Carrot': ['Carrots', 'Shredded Carrots', 'Apples', 'Apple Pie'],
+    'Worm': ['Meal Bugs', 'Meal Worms', 'Bug Cookies'],
+    'Seafood': ['Seafood', 'Shellfish', 'Fried Fish', 'Grilled Fish'],
+    'Seaweed': ['Green Seaweed', 'Red Seaweed', 'Seaweed Salad'],
+    'Shrimp': ['Meal Shrimp', 'Meal Plankton', 'Plankton Dumpling'],
+    'Chicken': ['Whole Chicken', 'Piece of Chicken', 'Chicken Steak'],
+    'Corn': ['Cherry', 'Corn', 'Cherry Pie', 'Corn Flakes'],
+    'Syrup': ['Flower Syrup', 'Honey Syrup', 'Flower Drops'],
+    'Peking Meat': ['Chashu Pork', 'Peking Meat', 'Warm Buns'],
+    'Bamboo Grass': ['Bamboo Grass', 'Sesame Leaves', 'Bamboo Leaf Rice Cake', 'Sesame Pancake'],
+    'Pomegranate': ['Persimmon', 'Pomegranate', 'Che Thai'],
+  };
+  const joinOr = list => list.length < 2 ? list.join('') : list.slice(0, -1).join(', ') + ' or ' + list[list.length - 1];
+  // The two charts count food cells differently, so the wording follows the chart in use.
+  const foodStep = (path, chart) => {
+    if (!path.food) {
+      return { title: `Keep the diet indeterminate to lead to ${path.young}`,
+        hint: 'Feed only the default pellets, which carry no points, or keep an equal mix of different food types in the cell.' };
+    }
+    const rule = chart === 'jade'
+      ? 'Items score points, and 5 points of one food type earns a cell.'
+      : 'Feeding the listed amount of one item earns a cell.';
+    return { title: `Feed ${path.food} to lead to ${path.young}`,
+      hint: `Use items like ${joinOr(FOOD_ITEMS[path.food] || [])}. ${rule} Whichever food type has the most cells when it evolves decides the young form.` };
+  };
+
+  // Which charts cover this body, in display order (Paradise first).
+  function chartsFor(body) {
+    const bn = normName(body.Name);
+    if (bn === 'BBMARUTCHI') return ['paradise', 'jade'];
+    if (SPECIAL_GROWTH[bn]) return SPECIAL_GROWTH[bn].charts;
+    if (BODY_GROWTH[bn]) return BODY_GROWTH[bn].charts;
+    if (YOUNG_GROWTH[bn]) return YOUNG_GROWTH[bn].charts;
+    if (KID_FIELD[bn]) return CHARTS_FOR_FIELD[KID_FIELD[bn]];
+    return [];
+  }
+
+  function guideFor(entry, wantChart) {
+    const body = byId.get(entry.bodyId), eyes = byId.get(entry.eyesId);
+    const pi = Math.max(0, pals.findIndex(p => p.Name === entry.colorName));
+    const steps = [], notes = [];
+    const bn = normName(body.Name);
+    const B = nice(body.Name), E = nice(eyes.Name);
+    const charts = chartsFor(body);
+    const chart = charts.includes(wantChart) ? wantChart : (charts[0] || null);
+
+    // Colour source: a parent from the matching colour group.
+    const group = pi === 0 ? colourGroupFor(body) : pals[pi].Name;
+    const groupPi = Math.max(1, pals.findIndex(p => p.Name === group));
+    const groupParents = colourChars[groupPi] || [];
+
+    // 1. Eyes and colour come from breeding: the egg takes 2 traits from the parents.
+    const eyesBreedable = eyes.Stage === 5 && eyes.Name !== 'BBMARUTCHI';
+    const colourWhat = pi === 0 ? `a ${group} colour (${B}'s own)` : `the ${group} parent's colour`;
+    if (eyesBreedable) {
+      steps.push({
+        title: `Breed ${E} with any ${group} adult`,
+        hint: `The egg takes 2 traits from the parents, so it can get ${E}'s eyes and ${colourWhat}.`,
+        parents: { eyes, group: groupParents, label: group },
+      });
+      if (eyes.IsExternal) notes.push(`${E} is a Lab Tama character, so the growth charts do not cover how to get that partner.`);
+    } else {
+      steps.push({
+        title: `Breed any ${group} adult for the colour`,
+        hint: `The egg takes 2 traits from the parents, so it can get ${colourWhat}.`,
+        parents: { eyes: null, group: groupParents, label: group },
+      });
+      notes.push(eyes.Name === 'BBMARUTCHI'
+        ? `Bbmarutchi cannot be bred with others, so its eyes cannot be passed on. They are preview only.`
+        : `${E} eyes belong to a growth stage, not an adult, so they cannot be bred in. They are preview only.`);
+    }
+
+    // 2+. The body comes from how the baby is raised.
+    const special = SPECIAL_GROWTH[bn];
+    const info = BODY_GROWTH[bn];
+    if (body.IsExternal) {
+      notes.push(`${B} is a Lab Tama character, so the growth charts have no raising steps for this body.`);
+    } else if (bn === 'BBMARUTCHI') {
+      if (chart === 'jade') {
+        steps.push({ title: 'Keep the baby for 4 hours', hint: 'It evolves into Bbmarutchi after 4 hours in the baby stage.' });
+        steps.push({ title: 'Keep every field cell count under 4', hint: 'Switch Tama fields just before the 15 minute mark so no single field type reaches 4 cells.' });
+      } else {
+        steps.push({ title: 'Leave the baby alone for 4 hours', hint: 'It evolves into Bbmarutchi when left in the baby or kid stage for 4 hours without any changes.' });
+      }
+      notes.push('Bbmarutchi looks like Babymarutchi but is already an adult, and it cannot be bred with others.');
+    } else if (special) {
+      steps.push(fieldStep(special.field));
+      steps.push({ title: 'Pick one food type for the young stage', hint: `Any single food type works. A mixed diet makes ${special.avoid}, and ${B} cannot evolve from that.` });
+      steps.push({ title: 'Connect shells during the young stage', hint: special.connect });
+    } else if (info) {
+      steps.push(fieldStep(info.field));
+      steps.push(foodStep(info, chart));
+      const [t, h] = TIERS[info.tier];
+      steps.push({ title: `Care for it: ${t}`, hint: h });
+    } else if (body.Stage === 4 && YOUNG_GROWTH[bn]) {
+      const path = YOUNG_GROWTH[bn];
+      steps.push(fieldStep(path.field));
+      steps.push(foodStep(path, chart));
+      notes.push(`${B} is a young stage, not a final form. Keep raising it with good care to reach an adult.`);
+    } else if (body.Stage === 3 && KID_FIELD[bn]) {
+      steps.push(fieldStep(KID_FIELD[bn]));
+      notes.push(`${B} is a kid stage, not a final form. It appears after the baby stage in that field.`);
+    } else if (body.Stage < 3) {
+      notes.push(`${B} is the baby stage, so there is nothing to raise. It is the starting point.`);
+    } else {
+      notes.push(`There is no growth data for ${B} yet.`);
+    }
+    return { body, eyes, group, steps, notes, charts, chart };
+  }
+
+  const guideDialog = document.getElementById('guide');
+  let guideKey = null;
+  function parentChip(c, extra = '') {
+    return `<div class="parent${extra}" title="${esc(nice(c.Name))}"><canvas data-thumb="${c.Id}" aria-hidden="true"></canvas><span>${esc(nice(c.Name))}</span></div>`;
+  }
+  function openGuide(key, wantChart) {
+    const entry = state.history.get(key);
+    if (!entry) return;
+    guideKey = key;
+    const g = guideFor(entry, wantChart);
+    const items = g.steps.map(st => {
+      let parents = '';
+      if (st.parents) {
+        parents = '<div class="parents">'
+          + (st.parents.eyes ? parentChip(st.parents.eyes, ' eyes-parent') + '<span class="sep">+</span>' : '')
+          + (st.parents.group.length
+            ? st.parents.group.map(c => parentChip(c)).join('')
+            : `<span class="sep">No adult ${esc(st.parents.label)} characters</span>`)
+          + '</div>';
+      }
+      return `<li><div class="step-title">${esc(st.title)}</div><p class="step-hint">${esc(st.hint)}</p>${parents}</li>`;
+    }).join('');
+    const tabs = g.charts.length > 1
+      ? `<div class="chart-tabs" role="group" aria-label="Growth chart">${g.charts.map(c =>
+          `<button type="button" data-chart="${c}" aria-pressed="${c === g.chart}">${CHART_LABEL[c]}</button>`).join('')}</div>`
+      : '';
+    guideDialog.innerHTML = `
+      <div class="guide-head">
+        <canvas id="guide-final" aria-hidden="true"></canvas>
+        <div>
+          <h3 id="guide-title">${esc(nice(g.body.Name))}</h3>
+          <p>Eyes: ${esc(nice(g.eyes.Name))}<br>Body: ${esc(entry.colorName)}</p>
+        </div>
+        <button type="button" class="guide-close" data-close aria-label="Close">✕</button>
+      </div>
+      <div class="guide-body">
+        ${tabs}
+        <ol>${items}</ol>
+        ${g.notes.map(n => `<p class="guide-note">${esc(n)}</p>`).join('')}
+        ${g.chart ? `<p class="guide-source">Source: ${esc(CHART_SOURCE[g.chart])}.</p>` : ''}
+      </div>`;
+    guideDialog.querySelectorAll('canvas[data-thumb]').forEach(cv => drawInto(cv, thumb(byId.get(Number(cv.dataset.thumb)))));
+    drawInto(document.getElementById('guide-final'), entry.canvas);
+    if (!wantChart) guideDialog.scrollTop = 0;
+    if (!guideDialog.open) guideDialog.showModal();
+  }
+  guideDialog.addEventListener('click', e => {
+    const tab = e.target.closest('[data-chart]');
+    if (tab) return openGuide(guideKey, tab.dataset.chart);
+    if (e.target === guideDialog || e.target.closest('[data-close]')) guideDialog.close();
+  });
+
   const app = document.getElementById('app');
   const openPickers = new Set(); // keep <details> open across re-renders
 
   function pickerHtml(label, key, list, selected) {
+    const isEyes = key === 'eyes';
+    const thumbAttr = id => isEyes ? `class="eyes-thumb" data-eyes-thumb="${id}"` : `data-thumb="${id}"`;
     const badge = selected
-      ? `<div class="selected-badge"><canvas data-thumb="${selected.Id}"></canvas>${esc(selected.Name)}</div>`
+      ? `<div class="selected-badge"><canvas ${thumbAttr(selected.Id)}></canvas>${esc(selected.Name)}</div>`
       : '';
     const cards = list.map(c => `
       <button type="button" class="tama-card${selected && c.Id === selected.Id ? ' selected' : ''}" data-pick="${key}" data-id="${c.Id}" title="${esc(c.Name)}">
-        <canvas data-thumb="${c.Id}"></canvas>
+        <canvas ${thumbAttr(c.Id)}></canvas>
         <span class="label">${esc(c.Name)}</span>
       </button>`).join('');
     return `
@@ -434,14 +828,39 @@ function start(data, palettes, sprites) {
       ${badge}
       <details class="picker" data-details="${key}"${openPickers.has(key) ? ' open' : ''}>
         <summary>Pick ${label}</summary>
-        <div class="tama-grid">${cards}</div>
+        <div class="tama-grid${isEyes ? ' eyes-grid' : ''}">${cards}</div>
+      </details>`;
+  }
+
+  function colorPickerHtml() {
+    const sel = pals[state.colorIdx];
+    const rows = pals.map((p, i) => {
+      const members = colourChars[i];
+      const thumbs = i === 0
+        ? '<span class="cnone">Each character keeps its own colours</span>'
+        : members.length
+          ? members.map(c => `<canvas data-thumb="${c.Id}" title="${esc(c.Name)}"></canvas>`).join('')
+          : '<span class="cnone">No adult characters</span>';
+      return `
+        <button type="button" class="color-item${i === state.colorIdx ? ' selected' : ''}" data-pick="color" data-idx="${i}" aria-label="${esc(p.Name)}">
+          <canvas class="swatch" data-swatch="${i}" aria-hidden="true"></canvas>
+          <span class="cname">${esc(p.Name)}</span>
+          <span class="cthumbs" aria-hidden="true">${thumbs}</span>
+        </button>`;
+    }).join('');
+    return `
+      <div class="picker-header">Color Palette</div>
+      <div class="selected-badge"><canvas class="swatch" data-swatch="${state.colorIdx}" aria-hidden="true"></canvas>${esc(sel.Name)}</div>
+      <details class="picker" data-details="color"${openPickers.has('color') ? ' open' : ''}>
+        <summary>Pick Color</summary>
+        <div class="color-list">${rows}</div>
       </details>`;
   }
 
   function render() {
     const scrollY = window.scrollY;
     const gridScroll = {};
-    app.querySelectorAll('[data-details]').forEach(d => { gridScroll[d.dataset.details] = d.querySelector('.tama-grid').scrollTop; });
+    app.querySelectorAll('[data-details]').forEach(d => { gridScroll[d.dataset.details] = d.querySelector('.tama-grid, .color-list').scrollTop; });
     refreshLists();
     const current = addHistory();
     const color = pals[state.colorIdx];
@@ -490,15 +909,8 @@ function start(data, palettes, sprites) {
             ${pickerHtml('Eyes', 'eyes', eyesList, state.eyes)}
           </div>
         </div>
-        <div class="color-row">
-          <div>
-            <label for="color-select">Color Palette</label>
-            <select id="color-select">
-              ${pals.map((p, i) => `<option value="${i}"${i === state.colorIdx ? ' selected' : ''}>${esc(p.Name)}</option>`).join('')}
-            </select>
-          </div>
-          <button type="button" class="btn" data-action="rand-color" aria-label="Random colour">🎲</button>
-        </div>
+        <button type="button" class="btn" data-action="rand-color" style="margin-top:16px">🎲 Random Color</button>
+        ${colorPickerHtml()}
       </section>
 
       <button type="button" class="btn" data-action="rand-all">🎲 Randomise All</button>
@@ -515,6 +927,7 @@ function start(data, palettes, sprites) {
 
       <h2>History</h2>
       ${histList.length ? `
+        <p class="hist-hint">Click a character to see how to grow it.</p>
         <div class="history-actions">
           <button type="button" class="btn" data-action="delete-selected"${nSel ? '' : ' disabled'}>🗑️ Delete selected (${nSel})</button>
           <button type="button" class="btn" data-action="rand-selected"${nSel ? '' : ' disabled'}>🎲 Randomise selected (${nSel})</button>
@@ -524,8 +937,8 @@ function start(data, palettes, sprites) {
           ${histList.map(([k, v]) => `
             <div class="history-item">
               <label class="check"><input type="checkbox" data-hist="${esc(k)}"${state.selected.has(k) ? ' checked' : ''} aria-label="Select ${esc(byId.get(v.bodyId).Name)} × ${esc(byId.get(v.eyesId).Name)}"></label>
-              <canvas data-hist-canvas="${esc(k)}"></canvas>
-              <div class="cap"><span>${esc(byId.get(v.bodyId).Name)} × ${esc(byId.get(v.eyesId).Name)}</span><span>${esc(v.colorName)}</span></div>
+              <button type="button" class="hist-open" data-guide="${esc(k)}" title="How to grow this" aria-label="How to grow ${esc(byId.get(v.bodyId).Name)} with ${esc(byId.get(v.eyesId).Name)} eyes in ${esc(v.colorName)}"><canvas data-hist-canvas="${esc(k)}"></canvas></button>
+              <div class="cap"><span class="cap-name">${esc(byId.get(v.bodyId).Name)}</span><span>Eyes: ${esc(byId.get(v.eyesId).Name)}</span><span>Body: ${esc(v.colorName)}</span></div>
             </div>`).join('')}
         </div>` : '<div class="empty">No history yet.</div>'}
 
@@ -534,12 +947,14 @@ function start(data, palettes, sprites) {
 
     // paint canvases
     app.querySelectorAll('canvas[data-thumb]').forEach(cv => drawInto(cv, thumb(byId.get(Number(cv.dataset.thumb)))));
+    app.querySelectorAll('canvas[data-swatch]').forEach(cv => drawInto(cv, swatch(Number(cv.dataset.swatch))));
+    app.querySelectorAll('canvas[data-eyes-thumb]').forEach(cv => drawInto(cv, eyesThumb(byId.get(Number(cv.dataset.eyesThumb)))));
     app.querySelectorAll('canvas[data-hist-canvas]').forEach(cv => drawInto(cv, state.history.get(cv.dataset.histCanvas).canvas));
     if (current) {
       drawInto(document.getElementById('preview-small'), current.canvas);
       drawInto(document.getElementById('preview-large'), current.canvas);
     }
-    app.querySelectorAll('[data-details]').forEach(d => { d.querySelector('.tama-grid').scrollTop = gridScroll[d.dataset.details] || 0; });
+    app.querySelectorAll('[data-details]').forEach(d => { d.querySelector('.tama-grid, .color-list').scrollTop = gridScroll[d.dataset.details] || 0; });
     window.scrollTo(0, scrollY);
   }
 
@@ -547,10 +962,13 @@ function start(data, palettes, sprites) {
   app.addEventListener('click', e => {
     const pick = e.target.closest('[data-pick]');
     if (pick) {
-      const c = byId.get(Number(pick.dataset.id));
-      if (pick.dataset.pick === 'body') state.body = c; else state.eyes = c;
+      if (pick.dataset.pick === 'color') state.colorIdx = Number(pick.dataset.idx);
+      else if (pick.dataset.pick === 'body') state.body = byId.get(Number(pick.dataset.id));
+      else state.eyes = byId.get(Number(pick.dataset.id));
       return render();
     }
+    const guideBtn = e.target.closest('[data-guide]');
+    if (guideBtn) return openGuide(guideBtn.dataset.guide);
     const btn = e.target.closest('[data-action]');
     if (!btn || btn.disabled) return;
     switch (btn.dataset.action) {
@@ -584,7 +1002,6 @@ function start(data, palettes, sprites) {
       if (t.checked) state.selected.add(t.dataset.hist); else state.selected.delete(t.dataset.hist);
       return render();
     }
-    if (t.id === 'color-select') { state.colorIdx = Number(t.value); return render(); }
   });
 
   app.addEventListener('toggle', e => {
@@ -595,7 +1012,7 @@ function start(data, palettes, sprites) {
 
   restoreHistory();
   render();
-  window.__tama = { generate, state, pals, chars, sprites, palettes }; // handy for debugging in the console
+  window.__tama = { guideFor, openGuide, generate, state, pals, chars, sprites, palettes }; // handy for debugging in the console
 }
 
 boot().catch(err => {
