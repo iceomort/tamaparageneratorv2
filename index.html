@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tamagotchi Paradise Genes Generator</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --bg-2: #f0f2f6;
+  --text: #31333f;
+  --muted: #6b6f7b;
+  --border: rgba(49, 51, 63, 0.2);
+  --card: rgba(49, 51, 63, 0.04);
+  --card-hover: rgba(49, 51, 63, 0.10);
+  --accent: #6366f1;
+  --accent-soft: rgba(99, 102, 241, 0.2);
+  --accent-text: #4f46e5;
+  --danger: #dc3232;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1117;
+    --bg-2: #262730;
+    --text: #fafafa;
+    --muted: #9ca0ab;
+    --border: rgba(250, 250, 250, 0.2);
+    --card: rgba(255, 255, 255, 0.04);
+    --card-hover: rgba(255, 255, 255, 0.10);
+    --accent-text: #a5b4fc;
+  }
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  color: var(--text);
+  background: var(--bg);
+  font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+main { max-width: 1100px; margin: 0 auto; padding: 24px 20px 48px; }
+img, canvas { image-rendering: pixelated; }
+
+/* header */
+header { text-align: center; padding: 8px 0 4px; }
+.title-row { display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.title-row h1 { margin: 0; font-size: 1.8rem; font-weight: 800; letter-spacing: 0.02em; }
+.title-row canvas { width: 56px; height: 56px; }
+.credit { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+a { color: var(--accent-text); }
+
+/* panels */
+.panel { border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 16px 0; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 16px; }
+.grid-4 + .grid-4 { margin-top: 12px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+label.check { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 15px; }
+label.check input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; flex: none; }
+
+/* buttons */
+button { font: inherit; color: inherit; }
+.btn {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-text); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* picker */
+.picker-header { font-size: 13px; font-weight: 600; color: var(--muted); margin: 12px 0 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+.selected-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  font-size: 13px; font-weight: 600;
+  color: var(--accent-text);
+  margin-bottom: 8px;
+}
+.selected-badge canvas { width: 24px; height: 24px; }
+details.picker { border: 1px solid var(--border); border-radius: 8px; }
+details.picker summary { cursor: pointer; padding: 8px 12px; font-size: 15px; }
+.tama-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; padding: 8px 12px 12px; max-height: 420px; overflow-y: auto; }
+.tama-card {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background: var(--card);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.tama-card:hover { background: var(--card-hover); border-color: var(--border); }
+.tama-card.selected { background: var(--accent-soft); border-color: var(--accent); }
+.tama-card canvas { width: 40px; height: 40px; }
+.tama-card .label { font-size: 9px; text-align: center; line-height: 1.2; color: var(--muted); word-break: break-word; }
+.tama-card.selected .label { color: var(--accent-text); font-weight: 700; }
+
+/* colour row */
+.color-row { display: grid; grid-template-columns: 4fr 1fr; gap: 12px; align-items: end; margin-top: 16px; }
+.color-row label { display: block; font-size: 14px; margin-bottom: 4px; }
+select {
+  width: 100%; padding: 8px 12px; font: inherit; color: var(--text);
+  background: var(--bg-2); border: 1px solid transparent; border-radius: 8px;
+}
+select:hover { border-color: var(--accent); }
+
+/* preview */
+.preview { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; }
+.preview .small canvas { width: 160px; height: auto; max-width: 100%; }
+.preview .large canvas { width: 100%; max-width: 420px; height: auto; display: block; margin: 0 auto; }
+.caption { font-size: 14px; color: var(--muted); margin-top: 8px; }
+.caption strong { color: var(--text); }
+
+/* history */
+h2 { font-size: 1.75rem; margin: 32px 0 12px; font-weight: 700; }
+.history-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+.history-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+.history-item { font-size: 12px; }
+.history-item canvas { width: 96px; max-width: 100%; height: auto; display: block; margin: 4px 0; }
+.history-item .cap { color: var(--muted); line-height: 1.3; }
+.history-item .cap span { display: block; }
+.empty { color: var(--muted); }
+
+footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 14px; color: var(--muted); }
+.loading { text-align: center; color: var(--muted); padding: 48px 0; }
+
+@media (max-width: 760px) {
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .grid-2, .preview { grid-template-columns: 1fr; }
+  .history-grid { grid-template-columns: repeat(3, 1fr); }
+  .history-actions { grid-template-columns: 1fr; }
+  .title-row h1 { font-size: 1.4rem; }
+}
+</style>
+</head>
+<body>
+<main id="app"><div class="loading">Loading sprites…</div></main>
+
+<script>
+'use strict';
+
+// ── Character type mapping (Land / Water / Sky / Jade) ──────────────────────
+const CHAR_TYPES = {
+  // LAND adults
+  'MEOWTCHI': 'land', 'POCHITCHI': 'land', 'GUMAX': 'land', 'RATCHI': 'land',
+  'MAMETCHI': 'land', 'MIMITCHI': 'land', 'MOLMOTCHI': 'land', 'SHEEPTCHI': 'land',
+  'LEOPATCHI': 'land', 'SEBIRETCHI': 'land', 'ELIZARDOTCHI': 'land', 'HEAVYTCHI': 'land',
+  'FURAWATCHI': 'land', 'POTSUNENTCHI': 'land', 'TUSTUSTCHI': 'land', 'SHIGEMI-SAN': 'land',
+  'CHODRACOTCHI': 'land',
+  // WATER adults
+  'IRUKATCHI': 'water', 'KAMETCHI': 'water', 'KUJIRATCHI': 'water', 'URUOTCHI': 'water',
+  'AXOLOPATCHI': 'water', 'IMORITCHI': 'water', 'KAWAZUTCHI': 'water', 'BEAVERTCHI': 'water',
+  'TACHUTCHI': 'water', 'SHARKTCHI': 'water', 'ANKOTCHI': 'water', 'OTOTOTCHI': 'water',
+  'KURARATCHI': 'water', 'MENDAKOTCHI': 'water', 'AMEFURATCHI': 'water', 'GUSOKUTCHI': 'water',
+  'MERMARINTCHI': 'water',
+  // SKY adults
+  'HORHOTCHI': 'sky', 'MONGATCHI': 'sky', 'EAGLETCHI': 'sky', 'BATCHI': 'sky',
+  'PEACOTCHI': 'sky', 'BATATCHI': 'sky', 'KUCHIPATCHI': 'sky', 'KIWITCHI': 'sky',
+  'PAPILLOTCHI': 'sky', 'KABUTOTCHI': 'sky', 'TENTOTCHI': 'sky', 'HATCHITCHI': 'sky',
+  'GEMTCHI': 'sky', 'ORETATCHI': 'sky', 'ISHIKOROTCHI': 'sky', 'MAGMATCHI': 'sky',
+  'YAYACORNTCHI': 'sky',
+  // JADE adults
+  'FOREST HORHOTCHI': 'jade', 'KONKOTCHI': 'jade', 'TIGAOTCHI': 'jade', 'TANOONTCHI': 'jade',
+  'LESSAPANTCHI': 'jade', 'KANOKOTCHI': 'jade', 'SUIGYUTCHI': 'jade', 'PANBOOTCHI': 'jade',
+  'KACHITCHI': 'jade', 'TOKIPATCHI': 'jade', 'FOREST KUCHIPATCHI': 'jade', 'SPARROTCHI': 'jade',
+  'SHIITAKETCHI': 'jade', 'PEATCHI': 'jade', 'NAPPATCHI': 'jade', 'RUSHRADITCHI': 'jade',
+  'TATSUTCHI': 'jade',
+};
+const getCharType = c => CHAR_TYPES[c.Name.toUpperCase()] || 'other';
+
+const HISTORY_SHOWN = 18;
+const HISTORY_STORED = 100;
+const STORAGE_KEY = 'tamapara-history-v1';
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+const randInt = n => Math.floor(Math.random() * n);
+const choice = arr => arr[randInt(arr.length)];
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load ' + src));
+    img.src = src;
+  });
+}
+
+// Body and mouth sprites are index maps: red channel = palette index, alpha 0 = transparent.
+function readIndexMap(img) {
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+  const d = ctx.getImageData(0, 0, c.width, c.height).data;
+  const idx = new Uint8Array(c.width * c.height);
+  const opaque = new Uint8Array(c.width * c.height);
+  for (let i = 0; i < idx.length; i++) {
+    idx[i] = d[i * 4];
+    opaque[i] = d[i * 4 + 3] ? 1 : 0;
+  }
+  return { width: c.width, height: c.height, idx, opaque };
+}
+
+// Replace the first 8 palette entries with the chosen colour (Colors is flattened RGBA).
+function buildPalette(origRgb, colors) {
+  const pal = origRgb.map(c => c.slice(0, 3));
+  for (let i = 0; i < Math.floor(colors.length / 4); i++) {
+    if (i < pal.length) pal[i] = [colors[i * 4], colors[i * 4 + 1], colors[i * 4 + 2]];
+  }
+  return pal;
+}
+
+function recolour(map, pal) {
+  const c = document.createElement('canvas');
+  c.width = map.width; c.height = map.height;
+  const ctx = c.getContext('2d');
+  const out = ctx.createImageData(map.width, map.height);
+  for (let i = 0; i < map.idx.length; i++) {
+    if (!map.opaque[i]) continue;
+    const rgb = pal[map.idx[i]] || [0, 0, 0];
+    out.data[i * 4] = rgb[0];
+    out.data[i * 4 + 1] = rgb[1];
+    out.data[i * 4 + 2] = rgb[2];
+    out.data[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(out, 0, 0);
+  return c;
+}
+
+// ── Boot ────────────────────────────────────────────────────────────────────
+async function boot() {
+  const [data, palettes] = await Promise.all([
+    fetch('data.json').then(r => r.json()),
+    fetch('sprite-palettes.json').then(r => r.json()),
+  ]);
+
+  const sprites = {}; // Id -> { body, mouth, eyes }
+  await Promise.all(data.Characters.map(async c => {
+    const [b, m, e] = await Promise.all([
+      loadImage(`sprites/${c.Id}_body.png`),
+      loadImage(`sprites/${c.Id}_mouth.png`),
+      loadImage(`images/${c.Id}_eyes.png`),
+    ]);
+    sprites[c.Id] = { body: readIndexMap(b), mouth: readIndexMap(m), eyes: e };
+  }));
+
+  start(data, palettes, sprites);
+}
+
+function start(data, palettes, sprites) {
+  const chars = data.Characters;
+  const pals = data.Palettes;
+  const byId = new Map(chars.map(c => [c.Id, c]));
+
+  // ── Compositing (mirrors generate_image in the Python version) ────────────
+  function generate(body, eyes, color) {
+    const drawOffset = [0, 0];
+    for (const prop of ['EyePos', 'MouthPos']) {
+      for (let i = 0; i < 2; i++) {
+        if (body[prop][i] < drawOffset[i]) drawOffset[i] = body[prop][i];
+      }
+    }
+    drawOffset[0] = -drawOffset[0];
+    drawOffset[1] = -drawOffset[1];
+
+    const bs = sprites[body.Id];
+    const es = sprites[eyes.Id];
+    const dim = [0, 0];
+    for (const part of [bs.body, es.eyes, bs.mouth]) {
+      dim[0] = Math.max(dim[0], part.width + drawOffset[0]);
+      dim[1] = Math.max(dim[1], part.height + drawOffset[1]);
+    }
+
+    const out = document.createElement('canvas');
+    out.width = dim[0]; out.height = dim[1];
+    const ctx = out.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    const bodyPal = buildPalette(palettes[body.Id].body, color.Colors);
+    const mouthPal = buildPalette(palettes[body.Id].mouth, color.Colors);
+
+    ctx.drawImage(recolour(bs.body, bodyPal), drawOffset[0], drawOffset[1]);
+    ctx.drawImage(es.eyes, drawOffset[0] + body.EyePos[0], drawOffset[1] + body.EyePos[1]);
+    ctx.drawImage(recolour(bs.mouth, mouthPal), drawOffset[0] + body.MouthPos[0], drawOffset[1] + body.MouthPos[1]);
+    return out;
+  }
+
+  // Thumbnails use a character's own body, eyes and mouth in the Original palette.
+  const thumbCache = new Map();
+  function thumb(c) {
+    if (!thumbCache.has(c.Id)) thumbCache.set(c.Id, generate(c, c, pals[0]));
+    return thumbCache.get(c.Id);
+  }
+  function drawInto(target, source) {
+    target.width = source.width; target.height = source.height;
+    target.getContext('2d').drawImage(source, 0, 0);
+  }
+  function canvasFrom(source) {
+    const c = document.createElement('canvas');
+    drawInto(c, source);
+    return c;
+  }
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  const opts = { land: true, water: true, sky: true, jade: true, nonBreedable: false, externalEyes: false, externalBodies: false, nonAdultBodies: false };
+  const state = {
+    body: null, eyes: null, colorIdx: 0,
+    history: new Map(),        // key -> { bodyId, eyesId, colorName, canvas }
+    selected: new Set(),
+    headerTamas: (() => {
+      const adults = chars.filter(c => c.Stage === 5);
+      const a = randInt(adults.length);
+      let b = randInt(adults.length - 1);
+      if (b >= a) b++;
+      return [adults[a], adults[b]];
+    })(),
+  };
+
+  function charaFilter(c) {
+    const t = getCharType(c);
+    if (t === 'land' && !opts.land) return false;
+    if (t === 'water' && !opts.water) return false;
+    if (t === 'sky' && !opts.sky) return false;
+    if (t === 'jade' && !opts.jade) return false;
+    if (c.IsJade && !opts.jade) return false;
+    return true;
+  }
+  function bodyFilter(c) {
+    if (!opts.externalBodies && c.IsExternal) return false;
+    if (!opts.nonAdultBodies && c.Stage < 5) return false;
+    return true;
+  }
+  function eyesFilter(c) {
+    if (!opts.nonBreedable && (c.Stage < 5 || c.Name === 'BBMARUTCHI')) return false;
+    if (!opts.externalEyes && c.IsExternal) return false;
+    return true;
+  }
+  let bodiesList = [], eyesList = [];
+  function refreshLists() {
+    const base = chars.filter(charaFilter);
+    bodiesList = base.filter(bodyFilter);
+    eyesList = base.filter(eyesFilter);
+    if (!state.body || !bodiesList.some(c => c.Id === state.body.Id)) state.body = bodiesList[0] || null;
+    if (!state.eyes || !eyesList.some(c => c.Id === state.eyes.Id)) state.eyes = eyesList[0] || null;
+  }
+
+  // ── History (kept across visits in localStorage as combo keys only) ───────
+  const keyOf = (body, eyes, color) => `${body.Id}_${eyes.Id}_${color.Name}`;
+  function addHistory() {
+    if (!state.body || !state.eyes) return null;
+    const color = pals[state.colorIdx];
+    const key = keyOf(state.body, state.eyes, color);
+    if (!state.history.has(key)) {
+      state.history.set(key, {
+        bodyId: state.body.Id, eyesId: state.eyes.Id, colorName: color.Name,
+        canvas: generate(state.body, state.eyes, color),
+      });
+      saveHistory();
+    }
+    return state.history.get(key);
+  }
+  function saveHistory() {
+    try {
+      const rows = [...state.history.values()].slice(-HISTORY_STORED).map(h => [h.bodyId, h.eyesId, h.colorName]);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+    } catch (e) { /* storage unavailable; history stays in memory */ }
+  }
+  function restoreHistory() {
+    try {
+      const rows = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      for (const [bodyId, eyesId, colorName] of rows) {
+        const body = byId.get(bodyId), eyes = byId.get(eyesId);
+        const color = pals.find(p => p.Name === colorName);
+        if (!body || !eyes || !color) continue;
+        state.history.set(keyOf(body, eyes, color), { bodyId, eyesId, colorName, canvas: generate(body, eyes, color) });
+      }
+    } catch (e) { /* ignore corrupt or unavailable storage */ }
+  }
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+  function randomiseSelected() {
+    const entries = [...state.selected].map(k => state.history.get(k)).filter(Boolean);
+    if (!entries.length) return;
+    const nameOf = id => byId.get(id).Name;
+    if (entries.length === 1) {
+      const e = entries[0];
+      const tamaBody = bodiesList.find(c => c.Name === nameOf(e.bodyId));
+      const tamaEyes = eyesList.find(c => c.Name === nameOf(e.eyesId));
+      const tamaColor = pals.findIndex(p => p.Name === e.colorName);
+      if (Math.random() < 0.5) {
+        if (tamaBody) state.body = tamaBody;
+        state.eyes = choice(eyesList);
+      } else {
+        state.body = choice(bodiesList);
+        if (tamaEyes) state.eyes = tamaEyes;
+      }
+      state.colorIdx = (tamaColor >= 0 && Math.random() < 0.5) ? tamaColor : randInt(pals.length);
+    } else {
+      const bodyPool = entries.map(e => bodiesList.find(c => c.Name === nameOf(e.bodyId))).filter(Boolean);
+      const eyesPool = entries.map(e => eyesList.find(c => c.Name === nameOf(e.eyesId))).filter(Boolean);
+      const colorPool = entries.map(e => pals.findIndex(p => p.Name === e.colorName)).filter(i => i >= 0);
+      if (bodyPool.length) state.body = choice(bodyPool);
+      if (eyesPool.length) state.eyes = choice(eyesPool);
+      if (colorPool.length) state.colorIdx = choice(colorPool);
+    }
+  }
+
+  // ── Rendering ──────────────────────────────────────────────────────────────
+  const app = document.getElementById('app');
+  const openPickers = new Set(); // keep <details> open across re-renders
+
+  function pickerHtml(label, key, list, selected) {
+    const badge = selected
+      ? `<div class="selected-badge"><canvas data-thumb="${selected.Id}"></canvas>${esc(selected.Name)}</div>`
+      : '';
+    const cards = list.map(c => `
+      <button type="button" class="tama-card${selected && c.Id === selected.Id ? ' selected' : ''}" data-pick="${key}" data-id="${c.Id}" title="${esc(c.Name)}">
+        <canvas data-thumb="${c.Id}"></canvas>
+        <span class="label">${esc(c.Name)}</span>
+      </button>`).join('');
+    return `
+      <div class="picker-header">${label}</div>
+      ${badge}
+      <details class="picker" data-details="${key}"${openPickers.has(key) ? ' open' : ''}>
+        <summary>Pick ${label}</summary>
+        <div class="tama-grid">${cards}</div>
+      </details>`;
+  }
+
+  function render() {
+    const scrollY = window.scrollY;
+    const gridScroll = {};
+    app.querySelectorAll('[data-details]').forEach(d => { gridScroll[d.dataset.details] = d.querySelector('.tama-grid').scrollTop; });
+    refreshLists();
+    const current = addHistory();
+    const color = pals[state.colorIdx];
+    const [h1, h2] = state.headerTamas;
+
+    const histList = [...state.history.entries()].reverse().slice(0, HISTORY_SHOWN);
+    const nSel = [...state.selected].filter(k => state.history.has(k)).length;
+
+    const check = (id, label, checked) =>
+      `<label class="check"><input type="checkbox" data-opt="${id}"${checked ? ' checked' : ''}> ${label}</label>`;
+
+    app.innerHTML = `
+      <header>
+        <div class="title-row">
+          <canvas data-thumb="${h1.Id}" aria-hidden="true"></canvas>
+          <h1>Tamagotchi Paradise Genes Generator</h1>
+          <canvas data-thumb="${h2.Id}" aria-hidden="true"></canvas>
+        </div>
+        <div class="credit">created by <a href="https://github.com/scalynko/tamaparagenerator" target="_blank" rel="noopener">Scalynko</a>
+          &nbsp;/&nbsp; modified by <em>Iceomort</em> (24 Feb 2026)</div>
+      </header>
+
+      <section class="panel" aria-label="Options">
+        <div class="grid-4">
+          ${check('land', '🌿 Land', opts.land)}
+          ${check('water', '💧 Water', opts.water)}
+          ${check('sky', '☁️ Sky', opts.sky)}
+          ${check('jade', '🎋 Jade', opts.jade)}
+        </div>
+        <div class="grid-4">
+          ${check('nonBreedable', 'Include non-breedable eyes', opts.nonBreedable)}
+          ${check('externalEyes', 'Include Lab Tama eyes', opts.externalEyes)}
+          ${check('externalBodies', 'Include Lab Tama bodies', opts.externalBodies)}
+          ${check('nonAdultBodies', 'Include non-adult bodies', opts.nonAdultBodies)}
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Pickers">
+        <div class="grid-2">
+          <div>
+            <button type="button" class="btn" data-action="rand-body">🎲 Random Body</button>
+            ${pickerHtml('Body', 'body', bodiesList, state.body)}
+          </div>
+          <div>
+            <button type="button" class="btn" data-action="rand-eyes">🎲 Random Eyes</button>
+            ${pickerHtml('Eyes', 'eyes', eyesList, state.eyes)}
+          </div>
+        </div>
+        <div class="color-row">
+          <div>
+            <label for="color-select">Color Palette</label>
+            <select id="color-select">
+              ${pals.map((p, i) => `<option value="${i}"${i === state.colorIdx ? ' selected' : ''}>${esc(p.Name)}</option>`).join('')}
+            </select>
+          </div>
+          <button type="button" class="btn" data-action="rand-color" aria-label="Random colour">🎲</button>
+        </div>
+      </section>
+
+      <button type="button" class="btn" data-action="rand-all">🎲 Randomise All</button>
+
+      <section class="panel" aria-label="Preview">
+        ${current ? `
+        <div class="preview">
+          <div class="small"><canvas id="preview-small"></canvas>
+            <div class="caption"><strong>${esc(state.body.Name)}</strong> body × <strong>${esc(state.eyes.Name)}</strong> eyes, ${esc(color.Name)}</div>
+          </div>
+          <div class="large"><canvas id="preview-large"></canvas></div>
+        </div>` : '<div class="empty">No characters match the current filters.</div>'}
+      </section>
+
+      <h2>History</h2>
+      ${histList.length ? `
+        <div class="history-actions">
+          <button type="button" class="btn" data-action="delete-selected"${nSel ? '' : ' disabled'}>🗑️ Delete selected (${nSel})</button>
+          <button type="button" class="btn" data-action="rand-selected"${nSel ? '' : ' disabled'}>🎲 Randomise selected (${nSel})</button>
+          <button type="button" class="btn" data-action="clear-history">✕ Clear all history</button>
+        </div>
+        <div class="history-grid">
+          ${histList.map(([k, v]) => `
+            <div class="history-item">
+              <label class="check"><input type="checkbox" data-hist="${esc(k)}"${state.selected.has(k) ? ' checked' : ''} aria-label="Select ${esc(byId.get(v.bodyId).Name)} × ${esc(byId.get(v.eyesId).Name)}"></label>
+              <canvas data-hist-canvas="${esc(k)}"></canvas>
+              <div class="cap"><span>${esc(byId.get(v.bodyId).Name)} × ${esc(byId.get(v.eyesId).Name)}</span><span>${esc(v.colorName)}</span></div>
+            </div>`).join('')}
+        </div>` : '<div class="empty">No history yet.</div>'}
+
+      <footer>Original Generator created by <a href="https://github.com/scalynko/tamaparagenerator" target="_blank" rel="noopener">Scalynko</a>. I just made some edits! - ice</footer>
+    `;
+
+    // paint canvases
+    app.querySelectorAll('canvas[data-thumb]').forEach(cv => drawInto(cv, thumb(byId.get(Number(cv.dataset.thumb)))));
+    app.querySelectorAll('canvas[data-hist-canvas]').forEach(cv => drawInto(cv, state.history.get(cv.dataset.histCanvas).canvas));
+    if (current) {
+      drawInto(document.getElementById('preview-small'), current.canvas);
+      drawInto(document.getElementById('preview-large'), current.canvas);
+    }
+    app.querySelectorAll('[data-details]').forEach(d => { d.querySelector('.tama-grid').scrollTop = gridScroll[d.dataset.details] || 0; });
+    window.scrollTo(0, scrollY);
+  }
+
+  // ── Events (delegated, so re-rendering never loses handlers) ──────────────
+  app.addEventListener('click', e => {
+    const pick = e.target.closest('[data-pick]');
+    if (pick) {
+      const c = byId.get(Number(pick.dataset.id));
+      if (pick.dataset.pick === 'body') state.body = c; else state.eyes = c;
+      return render();
+    }
+    const btn = e.target.closest('[data-action]');
+    if (!btn || btn.disabled) return;
+    switch (btn.dataset.action) {
+      case 'rand-body': if (bodiesList.length) state.body = choice(bodiesList); break;
+      case 'rand-eyes': if (eyesList.length) state.eyes = choice(eyesList); break;
+      case 'rand-color': state.colorIdx = randInt(pals.length); break;
+      case 'rand-all':
+        if (bodiesList.length) state.body = choice(bodiesList);
+        if (eyesList.length) state.eyes = choice(eyesList);
+        state.colorIdx = randInt(pals.length);
+        break;
+      case 'delete-selected':
+        state.selected.forEach(k => state.history.delete(k));
+        state.selected.clear();
+        saveHistory();
+        break;
+      case 'rand-selected': randomiseSelected(); break;
+      case 'clear-history':
+        state.history.clear();
+        state.selected.clear();
+        saveHistory();
+        break;
+    }
+    render();
+  });
+
+  app.addEventListener('change', e => {
+    const t = e.target;
+    if (t.dataset.opt) { opts[t.dataset.opt] = t.checked; return render(); }
+    if (t.dataset.hist) {
+      if (t.checked) state.selected.add(t.dataset.hist); else state.selected.delete(t.dataset.hist);
+      return render();
+    }
+    if (t.id === 'color-select') { state.colorIdx = Number(t.value); return render(); }
+  });
+
+  app.addEventListener('toggle', e => {
+    const d = e.target.closest && e.target.closest('[data-details]');
+    if (!d) return;
+    if (d.open) openPickers.add(d.dataset.details); else openPickers.delete(d.dataset.details);
+  }, true);
+
+  restoreHistory();
+  render();
+  window.__tama = { generate, state, pals, chars, sprites, palettes }; // handy for debugging in the console
+}
+
+boot().catch(err => {
+  document.getElementById('app').innerHTML =
+    `<div class="loading">Could not load the generator: ${esc(err.message)}.<br>If you opened this file directly, serve it over http (see README) or use the GitHub Pages link.</div>`;
+});
+</script>
+</body>
+</html>
