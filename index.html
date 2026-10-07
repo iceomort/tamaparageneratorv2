@@ -161,6 +161,25 @@ button.hist-open { display: block; padding: 0; margin: 4px 0; border: 2px solid 
 button.hist-open:hover { border-color: var(--accent); background: var(--card); }
 button.hist-open canvas { margin: 0; }
 
+/* favourites */
+.section-tabs { display: flex; gap: 16px; align-items: baseline; margin: 32px 0 12px; }
+.section-tabs button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 0 2px 4px; font-size: 1.5rem; font-weight: 700; color: var(--muted); cursor: pointer; }
+.section-tabs button:hover { color: var(--text); }
+.section-tabs button[aria-pressed="true"] { color: var(--text); border-bottom-color: var(--accent); }
+.heart { display: inline-flex; vertical-align: middle; padding: 2px; border: 0; background: none; cursor: pointer; color: var(--muted); border-radius: 50%; }
+.heart svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; }
+.heart.mini svg { width: 15px; height: 15px; }
+.heart:hover { color: #ef4466; }
+.heart[aria-pressed="true"] { color: #ef4466; }
+.heart[aria-pressed="true"] svg { fill: currentColor; }
+.guide-name { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.guide-name h3 { margin: 0; }
+.rename-row { margin-bottom: 4px; }
+.fav-input { width: 100%; padding: 4px 8px; font: inherit; font-size: 13px; border: 1px solid var(--accent); border-radius: 6px; background: var(--bg); color: var(--text); }
+.mini-btn { padding: 3px 8px; margin: 6px 4px 0 0; font-size: 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); cursor: pointer; }
+.mini-btn:hover { border-color: var(--accent); color: var(--accent-text); }
+.fav-item .cap-name { overflow-wrap: anywhere; }
+
 /* growing guide dialog */
 dialog#guide {
   width: min(560px, calc(100% - 24px)); max-height: min(86vh, 760px);
@@ -245,6 +264,8 @@ const getCharType = c => CHAR_TYPES[c.Name.toUpperCase()] || 'other';
 const HISTORY_SHOWN = 18;
 const HISTORY_STORED = 100;
 const STORAGE_KEY = 'tamapara-history-v1';
+const FAV_KEY = 'tamapara-favorites-v1';
+const HEART_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const randInt = n => Math.floor(Math.random() * n);
@@ -493,6 +514,9 @@ function start(data, palettes, sprites) {
     body: null, eyes: null, colorIdx: 0,
     history: new Map(),        // key -> { bodyId, eyesId, colorName, canvas }
     selected: new Set(),
+    favorites: new Map(),      // key -> { bodyId, eyesId, colorName, nickname, canvas }
+    view: 'history',           // which saved list is showing: 'history' or 'favorites'
+    renaming: null,            // key of the favourite being renamed
     headerTamas: (() => {
       const adults = chars.filter(c => c.Stage === 5);
       const a = randInt(adults.length);
@@ -561,6 +585,68 @@ function start(data, palettes, sprites) {
         state.history.set(keyOf(body, eyes, color), { bodyId, eyesId, colorName, canvas: generate(body, eyes, color) });
       }
     } catch (e) { /* ignore corrupt or unavailable storage */ }
+  }
+
+  // ── Favorites (kept in localStorage; the nickname is stored per combo) ────
+  function saveFavorites() {
+    try {
+      const rows = [...state.favorites.values()].map(f => [f.bodyId, f.eyesId, f.colorName, f.nickname || '']);
+      localStorage.setItem(FAV_KEY, JSON.stringify(rows));
+    } catch (e) { /* storage unavailable; favorites stay in memory */ }
+  }
+  function restoreFavorites() {
+    try {
+      const rows = JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
+      for (const [bodyId, eyesId, colorName, nickname] of rows) {
+        const body = byId.get(bodyId), eyes = byId.get(eyesId);
+        const color = pals.find(p => p.Name === colorName);
+        if (!body || !eyes || !color) continue;
+        state.favorites.set(keyOf(body, eyes, color), { bodyId, eyesId, colorName, nickname: nickname || '', canvas: generate(body, eyes, color) });
+      }
+    } catch (e) { /* ignore corrupt or unavailable storage */ }
+  }
+  function toggleFavorite(key, entry) {
+    if (state.favorites.has(key)) {
+      state.favorites.delete(key);
+      if (state.renaming === key) state.renaming = null;
+    } else {
+      const e = entry || state.history.get(key);
+      if (!e) return;
+      state.favorites.set(key, { bodyId: e.bodyId, eyesId: e.eyesId, colorName: e.colorName, nickname: '', canvas: e.canvas });
+    }
+    saveFavorites();
+  }
+  function saveRename(key) {
+    const fav = state.favorites.get(key), input = app.querySelector('[data-rename-input]');
+    if (fav && input) fav.nickname = input.value.trim().slice(0, 30);
+    state.renaming = null;
+    saveFavorites();
+  }
+  const favTitle = f => f.nickname ? `${f.nickname} the ${byId.get(f.bodyId).Name}` : byId.get(f.bodyId).Name;
+  const heartBtn = (key, mini) => `<button type="button" class="heart${mini ? ' mini' : ''}" data-fav-toggle="${esc(key)}" aria-pressed="${state.favorites.has(key)}" aria-label="${state.favorites.has(key) ? 'Remove from favorites' : 'Add to favorites'}" title="${state.favorites.has(key) ? 'Remove from favorites' : 'Add to favorites'}">${HEART_SVG}</button>`;
+
+  function favoritesHtml() {
+    const list = [...state.favorites.entries()].reverse();
+    if (!list.length) return '<div class="empty">No favorites yet. Open a character from History and tap the heart next to its name.</div>';
+    return `
+      <p class="hist-hint">Click a character to see how to grow it. Use Rename to give it a name.</p>
+      <div class="history-grid">
+        ${list.map(([k, f]) => {
+          const bodyName = byId.get(f.bodyId).Name, eyesName = byId.get(f.eyesId).Name;
+          const renaming = state.renaming === k;
+          return `
+          <div class="history-item fav-item">
+            <button type="button" class="hist-open" data-guide="${esc(k)}" title="How to grow this" aria-label="How to grow ${esc(favTitle(f))}"><canvas data-fav-canvas="${esc(k)}"></canvas></button>
+            <div class="cap">
+              ${renaming
+                ? `<div class="rename-row"><input class="fav-input" data-rename-input="${esc(k)}" value="${esc(f.nickname)}" maxlength="30" placeholder="Name it, e.g. Henry" aria-label="Nickname"><button type="button" class="mini-btn" data-fav-save="${esc(k)}">Save</button><button type="button" class="mini-btn" data-fav-cancel>Cancel</button></div>`
+                : `<span class="cap-name">${esc(favTitle(f))} ${heartBtn(k, true)}</span>`}
+              <span>Eyes: ${esc(eyesName)}</span><span>Body: ${esc(f.colorName)}</span>
+            </div>
+            ${renaming ? '' : `<button type="button" class="mini-btn" data-fav-rename="${esc(k)}">✎ Rename</button>`}
+          </div>`;
+        }).join('')}
+      </div>`;
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
@@ -758,15 +844,18 @@ function start(data, palettes, sprites) {
   }
 
   const guideDialog = document.getElementById('guide');
-  let guideKey = null;
+  let guideKey = null, guideEntry = null, guideChart = null;
   function parentChip(c, extra = '') {
     return `<div class="parent${extra}" title="${esc(nice(c.Name))}"><canvas data-thumb="${c.Id}" aria-hidden="true"></canvas><span>${esc(nice(c.Name))}</span></div>`;
   }
   function openGuide(key, wantChart) {
-    const entry = state.history.get(key);
+    const entry = state.history.get(key) || state.favorites.get(key);
     if (!entry) return;
-    guideKey = key;
+    guideKey = key; guideEntry = entry;
     const g = guideFor(entry, wantChart);
+    guideChart = g.chart;
+    const fav = state.favorites.get(key);
+    const titleText = fav && fav.nickname ? `${fav.nickname} the ${nice(g.body.Name)}` : nice(g.body.Name);
     const items = g.steps.map(st => {
       let parents = '';
       if (st.parents) {
@@ -787,7 +876,7 @@ function start(data, palettes, sprites) {
       <div class="guide-head">
         <canvas id="guide-final" aria-hidden="true"></canvas>
         <div>
-          <h3 id="guide-title">${esc(nice(g.body.Name))}</h3>
+          <div class="guide-name"><h3 id="guide-title">${esc(titleText)}</h3>${heartBtn(key)}</div>
           <p>Eyes: ${esc(nice(g.eyes.Name))}<br>Body: ${esc(entry.colorName)}</p>
         </div>
         <button type="button" class="guide-close" data-close aria-label="Close">✕</button>
@@ -804,6 +893,12 @@ function start(data, palettes, sprites) {
     if (!guideDialog.open) guideDialog.showModal();
   }
   guideDialog.addEventListener('click', e => {
+    const heart = e.target.closest('[data-fav-toggle]');
+    if (heart) {
+      toggleFavorite(guideKey, guideEntry);
+      render();                                   // refresh hearts and the Favorites count behind the popup
+      return openGuide(guideKey, guideChart);
+    }
     const tab = e.target.closest('[data-chart]');
     if (tab) return openGuide(guideKey, tab.dataset.chart);
     if (e.target === guideDialog || e.target.closest('[data-close]')) guideDialog.close();
@@ -925,8 +1020,11 @@ function start(data, palettes, sprites) {
         </div>` : '<div class="empty">No characters match the current filters.</div>'}
       </section>
 
-      <h2>History</h2>
-      ${histList.length ? `
+      <div class="section-tabs" role="group" aria-label="Saved characters">
+        <button type="button" data-view="history" aria-pressed="${state.view === 'history'}">History</button>
+        <button type="button" data-view="favorites" aria-pressed="${state.view === 'favorites'}">Favorites (${state.favorites.size})</button>
+      </div>
+      ${state.view === 'favorites' ? favoritesHtml() : histList.length ? `
         <p class="hist-hint">Click a character to see how to grow it.</p>
         <div class="history-actions">
           <button type="button" class="btn" data-action="delete-selected"${nSel ? '' : ' disabled'}>🗑️ Delete selected (${nSel})</button>
@@ -938,7 +1036,7 @@ function start(data, palettes, sprites) {
             <div class="history-item">
               <label class="check"><input type="checkbox" data-hist="${esc(k)}"${state.selected.has(k) ? ' checked' : ''} aria-label="Select ${esc(byId.get(v.bodyId).Name)} × ${esc(byId.get(v.eyesId).Name)}"></label>
               <button type="button" class="hist-open" data-guide="${esc(k)}" title="How to grow this" aria-label="How to grow ${esc(byId.get(v.bodyId).Name)} with ${esc(byId.get(v.eyesId).Name)} eyes in ${esc(v.colorName)}"><canvas data-hist-canvas="${esc(k)}"></canvas></button>
-              <div class="cap"><span class="cap-name">${esc(byId.get(v.bodyId).Name)}</span><span>Eyes: ${esc(byId.get(v.eyesId).Name)}</span><span>Body: ${esc(v.colorName)}</span></div>
+              <div class="cap"><span class="cap-name">${esc(byId.get(v.bodyId).Name)} ${heartBtn(k, true)}</span><span>Eyes: ${esc(byId.get(v.eyesId).Name)}</span><span>Body: ${esc(v.colorName)}</span></div>
             </div>`).join('')}
         </div>` : '<div class="empty">No history yet.</div>'}
 
@@ -949,6 +1047,7 @@ function start(data, palettes, sprites) {
     app.querySelectorAll('canvas[data-thumb]').forEach(cv => drawInto(cv, thumb(byId.get(Number(cv.dataset.thumb)))));
     app.querySelectorAll('canvas[data-swatch]').forEach(cv => drawInto(cv, swatch(Number(cv.dataset.swatch))));
     app.querySelectorAll('canvas[data-eyes-thumb]').forEach(cv => drawInto(cv, eyesThumb(byId.get(Number(cv.dataset.eyesThumb)))));
+    app.querySelectorAll('canvas[data-fav-canvas]').forEach(cv => drawInto(cv, state.favorites.get(cv.dataset.favCanvas).canvas));
     app.querySelectorAll('canvas[data-hist-canvas]').forEach(cv => drawInto(cv, state.history.get(cv.dataset.histCanvas).canvas));
     if (current) {
       drawInto(document.getElementById('preview-small'), current.canvas);
@@ -956,6 +1055,8 @@ function start(data, palettes, sprites) {
     }
     app.querySelectorAll('[data-details]').forEach(d => { d.querySelector('.tama-grid, .color-list').scrollTop = gridScroll[d.dataset.details] || 0; });
     window.scrollTo(0, scrollY);
+    const renameInput = app.querySelector('[data-rename-input]');
+    if (renameInput) { renameInput.focus({ preventScroll: true }); renameInput.select(); }
   }
 
   // ── Events (delegated, so re-rendering never loses handlers) ──────────────
@@ -967,6 +1068,15 @@ function start(data, palettes, sprites) {
       else state.eyes = byId.get(Number(pick.dataset.id));
       return render();
     }
+    const favBtn = e.target.closest('[data-fav-toggle]');
+    if (favBtn) { toggleFavorite(favBtn.dataset.favToggle); return render(); }
+    const viewBtn = e.target.closest('[data-view]');
+    if (viewBtn) { state.view = viewBtn.dataset.view; state.renaming = null; return render(); }
+    const renameBtn = e.target.closest('[data-fav-rename]');
+    if (renameBtn) { state.renaming = renameBtn.dataset.favRename; return render(); }
+    const saveBtn = e.target.closest('[data-fav-save]');
+    if (saveBtn) { saveRename(saveBtn.dataset.favSave); return render(); }
+    if (e.target.closest('[data-fav-cancel]')) { state.renaming = null; return render(); }
     const guideBtn = e.target.closest('[data-guide]');
     if (guideBtn) return openGuide(guideBtn.dataset.guide);
     const btn = e.target.closest('[data-action]');
@@ -1004,6 +1114,13 @@ function start(data, palettes, sprites) {
     }
   });
 
+  app.addEventListener('keydown', e => {
+    const input = e.target.closest && e.target.closest('[data-rename-input]');
+    if (!input) return;
+    if (e.key === 'Enter') { e.preventDefault(); saveRename(input.dataset.renameInput); render(); }
+    if (e.key === 'Escape') { e.preventDefault(); state.renaming = null; render(); }
+  });
+
   app.addEventListener('toggle', e => {
     const d = e.target.closest && e.target.closest('[data-details]');
     if (!d) return;
@@ -1011,8 +1128,9 @@ function start(data, palettes, sprites) {
   }, true);
 
   restoreHistory();
+  restoreFavorites();
   render();
-  window.__tama = { guideFor, openGuide, generate, state, pals, chars, sprites, palettes }; // handy for debugging in the console
+  window.__tama = { toggleFavorite, guideFor, openGuide, generate, state, pals, chars, sprites, palettes }; // handy for debugging in the console
 }
 
 boot().catch(err => {
