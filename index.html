@@ -166,9 +166,11 @@ button.hist-open canvas { margin: 0; }
 .section-tabs button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 0 2px 4px; font-size: 1.5rem; font-weight: 700; color: var(--muted); cursor: pointer; }
 .section-tabs button:hover { color: var(--text); }
 .section-tabs button[aria-pressed="true"] { color: var(--text); border-bottom-color: var(--accent); }
-.heart { display: inline-flex; vertical-align: middle; padding: 2px; border: 0; background: none; cursor: pointer; color: var(--muted); border-radius: 50%; }
-.heart svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; }
-.heart.mini svg { width: 15px; height: 15px; }
+.heart, .pencil { display: inline-flex; vertical-align: middle; padding: 2px; border: 0; background: none; cursor: pointer; color: var(--muted); border-radius: 50%; }
+.heart svg, .pencil svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; }
+.heart.mini svg, .pencil.mini svg { width: 15px; height: 15px; }
+.pencil svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pencil:hover { color: var(--accent-text); }
 .heart:hover { color: #ef4466; }
 .heart[aria-pressed="true"] { color: #ef4466; }
 .heart[aria-pressed="true"] svg { fill: currentColor; }
@@ -194,11 +196,6 @@ dialog#guide::backdrop { background: rgba(0, 0, 0, 0.55); }
 .guide-close { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg); cursor: pointer; line-height: 1; }
 .guide-close:hover { border-color: var(--accent); color: var(--accent-text); }
 .guide-body { padding: 8px 20px 20px; }
-.chart-tabs { display: inline-flex; margin: 12px 0 4px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-.chart-tabs button { padding: 6px 12px; border: 0; background: var(--bg); cursor: pointer; font-size: 13px; }
-.chart-tabs button + button { border-left: 1px solid var(--border); }
-.chart-tabs button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
-.chart-tabs button:hover:not([aria-pressed="true"]) { background: var(--card-hover); }
 .guide-body ol { margin: 8px 0 0; padding-left: 22px; }
 .guide-body li { padding: 8px 0 8px 4px; }
 .guide-body li::marker { color: var(--accent-text); font-weight: 700; }
@@ -263,8 +260,11 @@ const getCharType = c => CHAR_TYPES[c.Name.toUpperCase()] || 'other';
 
 const HISTORY_SHOWN = 18;
 const HISTORY_STORED = 100;
+const APP_VERSION = 'v3.0';          // bump when you ship a change
+const APP_UPDATED = '7 Oct 2026';    // and update the date here
 const STORAGE_KEY = 'tamapara-history-v1';
 const FAV_KEY = 'tamapara-favorites-v1';
+const PENCIL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
 const HEART_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -625,6 +625,34 @@ function start(data, palettes, sprites) {
   const favTitle = f => f.nickname ? `${f.nickname} the ${byId.get(f.bodyId).Name}` : byId.get(f.bodyId).Name;
   const heartBtn = (key, mini) => `<button type="button" class="heart${mini ? ' mini' : ''}" data-fav-toggle="${esc(key)}" aria-pressed="${state.favorites.has(key)}" aria-label="${state.favorites.has(key) ? 'Remove from favorites' : 'Add to favorites'}" title="${state.favorites.has(key) ? 'Remove from favorites' : 'Add to favorites'}">${HEART_SVG}</button>`;
 
+  const editBtn = (key, mini) => `<button type="button" class="pencil${mini ? ' mini' : ''}" data-edit="${esc(key)}" aria-label="Edit this character" title="Edit this character: load it back into the editor">${PENCIL_SVG}</button>`;
+
+  // Make sure a character is allowed by the current filters, so loading it back never gets reset.
+  function allowChar(c, as) {
+    const t = getCharType(c);
+    if (t in opts) opts[t] = true;
+    if (c.IsJade) opts.jade = true;
+    if (as === 'body') {
+      if (c.IsExternal) opts.externalBodies = true;
+      if (c.Stage < 5) opts.nonAdultBodies = true;
+    } else {
+      if (c.Stage < 5 || c.Name === 'BBMARUTCHI') opts.nonBreedable = true;
+      if (c.IsExternal) opts.externalEyes = true;
+    }
+  }
+  // Pencil: send a saved character back to the top editor so its body, eyes or colour can be changed.
+  function editEntry(key) {
+    const e = state.history.get(key) || state.favorites.get(key);
+    if (!e) return;
+    const body = byId.get(e.bodyId), eyes = byId.get(e.eyesId);
+    allowChar(body, 'body'); allowChar(eyes, 'eyes');
+    state.body = body; state.eyes = eyes;
+    const ci = pals.findIndex(p => p.Name === e.colorName);
+    state.colorIdx = ci >= 0 ? ci : 0;
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function favoritesHtml() {
     const list = [...state.favorites.entries()].reverse();
     if (!list.length) return '<div class="empty">No favorites yet. Open a character from History and tap the heart next to its name.</div>';
@@ -640,7 +668,7 @@ function start(data, palettes, sprites) {
             <div class="cap">
               ${renaming
                 ? `<div class="rename-row"><input class="fav-input" data-rename-input="${esc(k)}" value="${esc(f.nickname)}" maxlength="30" placeholder="Name it, e.g. Henry" aria-label="Nickname"><button type="button" class="mini-btn" data-fav-save="${esc(k)}">Save</button><button type="button" class="mini-btn" data-fav-cancel>Cancel</button></div>`
-                : `<span class="cap-name">${esc(favTitle(f))} ${heartBtn(k, true)}</span>`}
+                : `<span class="cap-name">${esc(favTitle(f))} ${heartBtn(k, true)}${editBtn(k, true)}</span>`}
               <span>Eyes: ${esc(eyesName)}</span><span>Body: ${esc(f.colorName)}</span>
             </div>
             ${renaming ? '' : `<button type="button" class="mini-btn" data-fav-rename="${esc(k)}">✎ Rename</button>`}
@@ -679,8 +707,9 @@ function start(data, palettes, sprites) {
 
   // ── Rendering ──────────────────────────────────────────────────────────────
   // ── Growing guide ──────────────────────────────────────────────────────────
-  // Data from Neo_Mametchi's Tamagotchi Paradise and Jade Forest growth charts. Each path is one
-  // young stage; its adults are listed from the top care tier down (tier 0 = 5 food, 5 happy, 0 mistakes).
+  // Data from the official Tamagotchi Paradise growth charts. The game has four biomes (Jade Forest,
+  // Land, Water, Sky) and each young stage lists its adults from the top care tier down
+  // (tier 0 = 5 food, 5 happy).
   const GROWTH_PATHS = [
     { field: 'Land', young: 'Roar Young', food: 'Meat', adults: ['MEOWTCHI', 'POCHITCHI', 'GUMAX', 'RATCHI'] },
     { field: 'Land', young: 'Toddle Young', food: 'Carrot', adults: ['MAMETCHI', 'MIMITCHI', 'MOLMOTCHI', 'SHEEPTCHI'] },
@@ -694,42 +723,37 @@ function start(data, palettes, sprites) {
     { field: 'Sky', young: 'Chirp Young', food: 'Corn', adults: ['PEACOTCHI', 'BATATCHI', 'KUCHIPATCHI', 'KIWITCHI'] },
     { field: 'Sky', young: 'Bumble Young', food: 'Syrup', adults: ['PAPILLOTCHI', 'KABUTOTCHI', 'TENTOTCHI', 'HATCHITCHI'] },
     { field: 'Sky', young: 'Rocky Young', food: null, adults: ['GEMTCHI', 'ORETATCHI', 'ISHIKOROTCHI', 'MAGMATCHI'] },
-    { field: 'Forest', young: 'Roar Young', food: 'Peking Meat', adults: ['FOREST HORHOTCHI', 'KONKOTCHI', 'TIGAOTCHI', 'TANOONTCHI'] },
-    { field: 'Forest', young: 'Toddle Young', food: 'Bamboo Grass', adults: ['LESSAPANTCHI', 'KANOKOTCHI', 'SUIGYUTCHI', 'PANBOOTCHI'] },
-    { field: 'Forest', young: 'Chirp Young', food: 'Pomegranate', adults: ['KACHITCHI', 'TOKIPATCHI', 'FOREST KUCHIPATCHI', 'SPARROTCHI'] },
-    { field: 'Forest', young: 'Sprout Young', food: null, adults: ['SHIITAKETCHI', 'PEATCHI', 'NAPPATCHI', 'RUSHRADITCHI'] },
+    { field: 'Jade Forest', young: 'Roar Young', food: 'Peking Meat', adults: ['FOREST HORHOTCHI', 'KONKOTCHI', 'TIGAOTCHI', 'TANOONTCHI'] },
+    { field: 'Jade Forest', young: 'Toddle Young', food: 'Bamboo Grass', adults: ['LESSAPANTCHI', 'KANOKOTCHI', 'SUIGYUTCHI', 'PANBOOTCHI'] },
+    { field: 'Jade Forest', young: 'Chirp Young', food: 'Pomegranate', adults: ['KACHITCHI', 'TOKIPATCHI', 'FOREST KUCHIPATCHI', 'SPARROTCHI'] },
+    { field: 'Jade Forest', young: 'Sprout Young', food: null, adults: ['SHIITAKETCHI', 'PEATCHI', 'NAPPATCHI', 'RUSHRADITCHI'] },
   ];
   const BODY_GROWTH = {}, YOUNG_GROWTH = {};
-  // Which growth chart each field appears on: Paradise has Land, Water and Sky; Jade Forest has Forest, Land and Water.
-  const CHARTS_FOR_FIELD = { Land: ['paradise', 'jade'], Water: ['paradise', 'jade'], Sky: ['paradise'], Forest: ['jade'] };
-  const CHART_LABEL = { paradise: 'Paradise chart', jade: 'Jade Forest chart' };
-  const CHART_SOURCE = { paradise: "Neo_Mametchi's Tamagotchi Paradise Growth Chart", jade: "Neo_Mametchi's Tamagotchi Paradise Jade Forest Growth Chart" };
   for (const path of GROWTH_PATHS) {
-    path.charts = CHARTS_FOR_FIELD[path.field];
     path.adults.forEach((n, tier) => { BODY_GROWTH[n] = { ...path, tier }; });
-    YOUNG_GROWTH[((path.field === 'Forest' ? 'FOREST ' : '') + path.young).toUpperCase()] = path;
+    YOUNG_GROWTH[((path.field === 'Jade Forest' ? 'FOREST ' : '') + path.young).toUpperCase()] = path;
   }
   const SPECIAL_GROWTH = {
-    'CHODRACOTCHI': { charts: ['paradise'], field: 'Land', avoid: 'Sprout Young', connect: 'Connect your Pink Land shell with a Blue Water shell and a Purple Sky shell.' },
-    'MERMARINTCHI': { charts: ['paradise'], field: 'Water', avoid: 'Float Young', connect: 'Connect your Blue Water shell with a Pink Land shell and a Purple Sky shell.' },
-    'YAYACORNTCHI': { charts: ['paradise'], field: 'Sky', avoid: 'Rocky Young', connect: 'Connect your Purple Sky shell with a Pink Land shell and a Blue Water shell.' },
-    'TATSUTCHI': { charts: ['jade'], field: 'Forest', avoid: 'Sprout Young', connect: 'Connect your Jade Forest shell with two shells of different colours.' },
+    'CHODRACOTCHI': { field: 'Land', avoid: 'Sprout Young', connect: 'Connect your Pink Land shell with a Blue Water shell and a Purple Sky shell.' },
+    'MERMARINTCHI': { field: 'Water', avoid: 'Float Young', connect: 'Connect your Blue Water shell with a Pink Land shell and a Purple Sky shell.' },
+    'YAYACORNTCHI': { field: 'Sky', avoid: 'Rocky Young', connect: 'Connect your Purple Sky shell with a Pink Land shell and a Blue Water shell.' },
+    'TATSUTCHI': { field: 'Jade Forest', avoid: 'Sprout Young', connect: 'Connect your Jade Forest shell with two shells of different colours.' },
   };
-  const KID_FIELD = { 'LAND KID': 'Land', 'WATER KID': 'Water', 'SKY KID': 'Sky', 'FOREST KID': 'Forest' };
+  const KID_FIELD = { 'LAND KID': 'Land', 'WATER KID': 'Water', 'SKY KID': 'Sky', 'FOREST KID': 'Jade Forest' };
   const TIERS = [
     ['5 food and 5 happy', 'Fill the hunger meter 5 times and the happy meter 5 times, with no care mistakes.'],
     ['4 food and 4 happy, or 1 care mistake', 'Either fill the hunger meter 4 times and the happy meter 4 times, or make 1 care mistake.'],
     ['2 to 5 care mistakes', 'Make between 2 and 5 care mistakes.'],
     ['6 or more care mistakes', 'Make 6 or more care mistakes.'],
   ];
-  const fieldName = f => f === 'Forest' ? 'Forest (Jade Forest)' : f;
   const nice = n => n.toLowerCase().replace(/(^|\s)(\w)/g, (m, sp, ch) => sp + ch.toUpperCase());
   const normName = n => n.toUpperCase().replace(/\s+/g, ' ').trim();
 
   const fieldStep = f => ({
-    title: `Raise the baby in the ${fieldName(f)} field`,
+    title: `Raise the baby in the ${f} field`,
     hint: `Each 15 minutes spent in a field earns a cell for it, so spend the baby stage there.`,
   });
+
   // Food items that build each food cell, as listed on the growth charts.
   const FOOD_ITEMS = {
     'Meat': ['Big Meat', 'Small Meat', 'Steak'],
@@ -746,38 +770,18 @@ function start(data, palettes, sprites) {
     'Pomegranate': ['Persimmon', 'Pomegranate', 'Che Thai'],
   };
   const joinOr = list => list.length < 2 ? list.join('') : list.slice(0, -1).join(', ') + ' or ' + list[list.length - 1];
-  // The two charts count food cells differently, so the wording follows the chart in use.
-  const foodStep = (path, chart) => {
-    if (!path.food) {
-      return { title: `Keep the diet indeterminate to lead to ${path.young}`,
+  const foodStep = path => path.food
+    ? { title: `Feed ${path.food} to lead to ${path.young}`,
+        hint: `Use items like ${joinOr(FOOD_ITEMS[path.food] || [])}. Items score points, and 5 points of one food type earns a cell. Whichever food type has the most cells when it evolves decides the young form.` }
+    : { title: `Keep the diet indeterminate to lead to ${path.young}`,
         hint: 'Feed only the default pellets, which carry no points, or keep an equal mix of different food types in the cell.' };
-    }
-    const rule = chart === 'jade'
-      ? 'Items score points, and 5 points of one food type earns a cell.'
-      : 'Feeding the listed amount of one item earns a cell.';
-    return { title: `Feed ${path.food} to lead to ${path.young}`,
-      hint: `Use items like ${joinOr(FOOD_ITEMS[path.food] || [])}. ${rule} Whichever food type has the most cells when it evolves decides the young form.` };
-  };
 
-  // Which charts cover this body, in display order (Paradise first).
-  function chartsFor(body) {
-    const bn = normName(body.Name);
-    if (bn === 'BBMARUTCHI') return ['paradise', 'jade'];
-    if (SPECIAL_GROWTH[bn]) return SPECIAL_GROWTH[bn].charts;
-    if (BODY_GROWTH[bn]) return BODY_GROWTH[bn].charts;
-    if (YOUNG_GROWTH[bn]) return YOUNG_GROWTH[bn].charts;
-    if (KID_FIELD[bn]) return CHARTS_FOR_FIELD[KID_FIELD[bn]];
-    return [];
-  }
-
-  function guideFor(entry, wantChart) {
+  function guideFor(entry) {
     const body = byId.get(entry.bodyId), eyes = byId.get(entry.eyesId);
     const pi = Math.max(0, pals.findIndex(p => p.Name === entry.colorName));
     const steps = [], notes = [];
     const bn = normName(body.Name);
     const B = nice(body.Name), E = nice(eyes.Name);
-    const charts = chartsFor(body);
-    const chart = charts.includes(wantChart) ? wantChart : (charts[0] || null);
 
     // Colour source: a parent from the matching colour group.
     const group = pi === 0 ? colourGroupFor(body) : pals[pi].Name;
@@ -811,12 +815,8 @@ function start(data, palettes, sprites) {
     if (body.IsExternal) {
       notes.push(`${B} is a Lab Tama character, so the growth charts have no raising steps for this body.`);
     } else if (bn === 'BBMARUTCHI') {
-      if (chart === 'jade') {
-        steps.push({ title: 'Keep the baby for 4 hours', hint: 'It evolves into Bbmarutchi after 4 hours in the baby stage.' });
-        steps.push({ title: 'Keep every field cell count under 4', hint: 'Switch Tama fields just before the 15 minute mark so no single field type reaches 4 cells.' });
-      } else {
-        steps.push({ title: 'Leave the baby alone for 4 hours', hint: 'It evolves into Bbmarutchi when left in the baby or kid stage for 4 hours without any changes.' });
-      }
+      steps.push({ title: 'Keep the baby for 4 hours', hint: 'It evolves into Bbmarutchi after 4 hours in the baby stage.' });
+      steps.push({ title: 'Keep every field cell count under 4', hint: 'Switch Tama fields just before the 15 minute mark so no single field type reaches 4 cells.' });
       notes.push('Bbmarutchi looks like Babymarutchi but is already an adult, and it cannot be bred with others.');
     } else if (special) {
       steps.push(fieldStep(special.field));
@@ -824,13 +824,13 @@ function start(data, palettes, sprites) {
       steps.push({ title: 'Connect shells during the young stage', hint: special.connect });
     } else if (info) {
       steps.push(fieldStep(info.field));
-      steps.push(foodStep(info, chart));
+      steps.push(foodStep(info));
       const [t, h] = TIERS[info.tier];
       steps.push({ title: `Care for it: ${t}`, hint: h });
     } else if (body.Stage === 4 && YOUNG_GROWTH[bn]) {
       const path = YOUNG_GROWTH[bn];
       steps.push(fieldStep(path.field));
-      steps.push(foodStep(path, chart));
+      steps.push(foodStep(path));
       notes.push(`${B} is a young stage, not a final form. Keep raising it with good care to reach an adult.`);
     } else if (body.Stage === 3 && KID_FIELD[bn]) {
       steps.push(fieldStep(KID_FIELD[bn]));
@@ -840,20 +840,19 @@ function start(data, palettes, sprites) {
     } else {
       notes.push(`There is no growth data for ${B} yet.`);
     }
-    return { body, eyes, group, steps, notes, charts, chart };
+    return { body, eyes, group, steps, notes };
   }
 
   const guideDialog = document.getElementById('guide');
-  let guideKey = null, guideEntry = null, guideChart = null;
+  let guideKey = null, guideEntry = null;
   function parentChip(c, extra = '') {
     return `<div class="parent${extra}" title="${esc(nice(c.Name))}"><canvas data-thumb="${c.Id}" aria-hidden="true"></canvas><span>${esc(nice(c.Name))}</span></div>`;
   }
-  function openGuide(key, wantChart) {
+  function openGuide(key, keepScroll) {
     const entry = state.history.get(key) || state.favorites.get(key);
     if (!entry) return;
     guideKey = key; guideEntry = entry;
-    const g = guideFor(entry, wantChart);
-    guideChart = g.chart;
+    const g = guideFor(entry);
     const fav = state.favorites.get(key);
     const titleText = fav && fav.nickname ? `${fav.nickname} the ${nice(g.body.Name)}` : nice(g.body.Name);
     const items = g.steps.map(st => {
@@ -868,28 +867,23 @@ function start(data, palettes, sprites) {
       }
       return `<li><div class="step-title">${esc(st.title)}</div><p class="step-hint">${esc(st.hint)}</p>${parents}</li>`;
     }).join('');
-    const tabs = g.charts.length > 1
-      ? `<div class="chart-tabs" role="group" aria-label="Growth chart">${g.charts.map(c =>
-          `<button type="button" data-chart="${c}" aria-pressed="${c === g.chart}">${CHART_LABEL[c]}</button>`).join('')}</div>`
-      : '';
     guideDialog.innerHTML = `
       <div class="guide-head">
         <canvas id="guide-final" aria-hidden="true"></canvas>
         <div>
-          <div class="guide-name"><h3 id="guide-title">${esc(titleText)}</h3>${heartBtn(key)}</div>
+          <div class="guide-name"><h3 id="guide-title">${esc(titleText)}</h3>${heartBtn(key)}${editBtn(key)}</div>
           <p>Eyes: ${esc(nice(g.eyes.Name))}<br>Body: ${esc(entry.colorName)}</p>
         </div>
         <button type="button" class="guide-close" data-close aria-label="Close">✕</button>
       </div>
       <div class="guide-body">
-        ${tabs}
         <ol>${items}</ol>
         ${g.notes.map(n => `<p class="guide-note">${esc(n)}</p>`).join('')}
-        ${g.chart ? `<p class="guide-source">Source: ${esc(CHART_SOURCE[g.chart])}.</p>` : ''}
+        <p class="guide-source">Source: Official Tamagotchi Paradise growth charts.</p>
       </div>`;
     guideDialog.querySelectorAll('canvas[data-thumb]').forEach(cv => drawInto(cv, thumb(byId.get(Number(cv.dataset.thumb)))));
     drawInto(document.getElementById('guide-final'), entry.canvas);
-    if (!wantChart) guideDialog.scrollTop = 0;
+    if (!keepScroll) guideDialog.scrollTop = 0;
     if (!guideDialog.open) guideDialog.showModal();
   }
   guideDialog.addEventListener('click', e => {
@@ -897,10 +891,10 @@ function start(data, palettes, sprites) {
     if (heart) {
       toggleFavorite(guideKey, guideEntry);
       render();                                   // refresh hearts and the Favorites count behind the popup
-      return openGuide(guideKey, guideChart);
+      return openGuide(guideKey, true);
     }
-    const tab = e.target.closest('[data-chart]');
-    if (tab) return openGuide(guideKey, tab.dataset.chart);
+    const edit = e.target.closest('[data-edit]');
+    if (edit) { guideDialog.close(); return editEntry(edit.dataset.edit); }
     if (e.target === guideDialog || e.target.closest('[data-close]')) guideDialog.close();
   });
 
@@ -975,7 +969,8 @@ function start(data, palettes, sprites) {
           <canvas data-thumb="${h2.Id}" aria-hidden="true"></canvas>
         </div>
         <div class="credit">created by <a href="https://github.com/scalynko/tamaparagenerator" target="_blank" rel="noopener">Scalynko</a>
-          &nbsp;/&nbsp; modified by <em>Iceomort</em> (24 Feb 2026)</div>
+          &nbsp;/&nbsp; modified by <em>Iceomort</em> (${APP_UPDATED})
+          &nbsp;/&nbsp; ${APP_VERSION}</div>
       </header>
 
       <section class="panel" aria-label="Options">
@@ -1036,7 +1031,7 @@ function start(data, palettes, sprites) {
             <div class="history-item">
               <label class="check"><input type="checkbox" data-hist="${esc(k)}"${state.selected.has(k) ? ' checked' : ''} aria-label="Select ${esc(byId.get(v.bodyId).Name)} × ${esc(byId.get(v.eyesId).Name)}"></label>
               <button type="button" class="hist-open" data-guide="${esc(k)}" title="How to grow this" aria-label="How to grow ${esc(byId.get(v.bodyId).Name)} with ${esc(byId.get(v.eyesId).Name)} eyes in ${esc(v.colorName)}"><canvas data-hist-canvas="${esc(k)}"></canvas></button>
-              <div class="cap"><span class="cap-name">${esc(byId.get(v.bodyId).Name)} ${heartBtn(k, true)}</span><span>Eyes: ${esc(byId.get(v.eyesId).Name)}</span><span>Body: ${esc(v.colorName)}</span></div>
+              <div class="cap"><span class="cap-name">${esc(byId.get(v.bodyId).Name)} ${heartBtn(k, true)}${editBtn(k, true)}</span><span>Eyes: ${esc(byId.get(v.eyesId).Name)}</span><span>Body: ${esc(v.colorName)}</span></div>
             </div>`).join('')}
         </div>` : '<div class="empty">No history yet.</div>'}
 
@@ -1068,6 +1063,8 @@ function start(data, palettes, sprites) {
       else state.eyes = byId.get(Number(pick.dataset.id));
       return render();
     }
+    const editEl = e.target.closest('[data-edit]');
+    if (editEl) return editEntry(editEl.dataset.edit);
     const favBtn = e.target.closest('[data-fav-toggle]');
     if (favBtn) { toggleFavorite(favBtn.dataset.favToggle); return render(); }
     const viewBtn = e.target.closest('[data-view]');
@@ -1130,7 +1127,7 @@ function start(data, palettes, sprites) {
   restoreHistory();
   restoreFavorites();
   render();
-  window.__tama = { toggleFavorite, guideFor, openGuide, generate, state, pals, chars, sprites, palettes }; // handy for debugging in the console
+  window.__tama = { editEntry, toggleFavorite, guideFor, openGuide, generate, state, pals, chars, sprites, palettes }; // handy for debugging in the console
 }
 
 boot().catch(err => {
