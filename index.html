@@ -312,6 +312,27 @@ details.picker[open] summary::after { transform: rotate(180deg); }
 .filters-panel .chip, .filters-panel .tgl { background: var(--surface); border-color: var(--border); }
 .filters-panel .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
 .filters-panel .tgl:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); }
+dialog#paste { width: min(540px, calc(100% - 24px)); max-height: 88vh; padding: 0; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); }
+dialog#paste::backdrop { background: rgba(0, 0, 0, .55); }
+.paste-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 6px; }
+.paste-head h3 { margin: 0; font-size: 1.15rem; }
+.paste-head .guide-close { position: static; }
+.paste-body { padding: 4px 18px 18px; }
+.paste-body code { font-size: 12.5px; background: var(--bg-2); padding: 1px 6px; border-radius: 6px; word-break: break-word; }
+.paste-muted { color: var(--muted); font-size: 14px; margin: 6px 0 10px; }
+#paste-text { width: 100%; padding: 10px 12px; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--text); background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px; resize: vertical; }
+#paste-text:focus { border-color: var(--accent); outline: none; }
+#paste-preview { margin: 10px 0 0; font-size: 14px; min-height: 22px; }
+.paste-ok { margin: 6px 0; color: #22a06b; font-weight: 600; }
+.paste-err p { margin: 6px 0 4px; color: #e5484d; font-weight: 600; }
+.paste-err ul { margin: 0; padding-left: 18px; font-size: 13px; }
+.paste-err li { margin: 4px 0; } .paste-err li span { color: var(--muted); }
+.paste-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.paste-actions .btn { width: auto; padding: 9px 18px; }
+.mini-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.mini-row .mini-btn { margin: 0; }
+.fav-bar { display: flex; gap: 8px; margin: 0 0 14px; }
+.fav-bar .btn { width: auto; padding: 8px 16px; }
 dialog#guide { background: var(--surface); }
 .guide-head { background: var(--surface); }
 .guide-close { background: var(--bg-2); }
@@ -320,6 +341,7 @@ dialog#guide { background: var(--surface); }
 <body>
 <main id="app"><div class="loading">Loading sprites…</div></main>
 <dialog id="guide" aria-labelledby="guide-title"></dialog>
+<dialog id="paste" aria-labelledby="paste-title"></dialog>
 
 <script>
 'use strict';
@@ -355,7 +377,7 @@ const getCharType = c => CHAR_TYPES[c.Name.toUpperCase()] || 'other';
 
 const HISTORY_SHOWN = 18;
 const HISTORY_STORED = 100;
-const APP_VERSION = 'v4.0';          // bump when you ship a change
+const APP_VERSION = 'v4.2';          // bump when you ship a change
 const APP_UPDATED = '7 Oct 2026';    // and update the date here
 const STORAGE_KEY = 'tamapara-history-v1';
 const FAV_KEY = 'tamapara-favorites-v1';
@@ -629,6 +651,7 @@ function start(data, palettes, sprites) {
     mood: new Set(),           // eye style filters in use: cute, tough, sad, small (none = show all)
     stars: new Set(),          // body care-level filters in use: 4 (top care) down to 1 (6+ care mistakes)
     types: new Set(),          // body type filters in use: mammal, bird, insect, reptile, aqua, other
+    flash: '',                 // short confirmation shown in the Favorites tab
     filtersOpen: { body: false, eyes: false },   // whether each section's Filters panel is showing
     headerTamas: (() => {
       const adults = chars.filter(c => c.Stage === 5);
@@ -800,6 +823,28 @@ function start(data, palettes, sprites) {
     state.renaming = null;
     saveFavorites();
   }
+  // One line per favourite, easy to paste anywhere: Henry the MEOWTCHI (Eyes: TIGAOTCHI / Body: Blue)
+  const favLine = f => `${favTitle(f)} (Eyes: ${byId.get(f.eyesId).Name} / Body: ${f.colorName})`;
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* fall through */ }
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      if (ok) return true;
+    } catch (e) { /* fall through */ }
+    window.prompt('Copy this text:', text);   // last resort when the browser blocks copying
+    return false;
+  }
+  async function copyWithFeedback(btn, text, doneLabel) {
+    const original = btn.innerHTML;
+    const ok = await copyText(text);
+    if (!ok) return;
+    btn.innerHTML = doneLabel;
+    setTimeout(() => { if (btn.isConnected) btn.innerHTML = original; }, 1600);
+  }
   const favTitle = f => f.nickname ? `${f.nickname} the ${byId.get(f.bodyId).Name}` : byId.get(f.bodyId).Name;
   const heartBtn = (key, mini) => `<button type="button" class="heart${mini ? ' mini' : ''}" data-fav-toggle="${esc(key)}" aria-pressed="${state.favorites.has(key)}" aria-label="${state.favorites.has(key) ? 'Remove from favorites' : 'Add to favorites'}" title="${state.favorites.has(key) ? 'Remove from favorites' : 'Add to favorites'}">${HEART_SVG}</button>`;
 
@@ -834,11 +879,103 @@ function start(data, palettes, sprites) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // ── Paste favorites: read lines like  Henry the MEOWTCHI (Eyes: TIGAOTCHI / Body: Blue) ──
+  const norm = t => t.trim().replace(/\s+/g, ' ').toUpperCase();
+  const charsByNameLen = [...chars].sort((a, b) => b.Name.length - a.Name.length);
+  const charByName = new Map(chars.map(c => [norm(c.Name), c]));
+  const FAV_LINE = /^(.*?)\s*\(\s*eyes\s*:\s*(.+?)\s*[\/|,;]\s*(?:body|colou?r)\s*:\s*(.+?)\s*\)\s*$/i;
+
+  function parseFavoriteText(text) {
+    const entries = [], errors = [], seen = new Set();
+    for (const raw of text.split(/\r?\n/)) {
+      const line = raw.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').trim();
+      if (!line) continue;
+      const m = line.match(FAV_LINE);
+      if (!m) { errors.push([raw.trim(), 'Not in the form  Name (Eyes: X / Body: Colour)']); continue; }
+      const title = m[1].trim().replace(/\s+/g, ' ');
+      const t = norm(title);
+      let body = null, nickname = '';
+      for (const c of charsByNameLen) {
+        const n = norm(c.Name);
+        if (t === n) { body = c; break; }
+        if (t.endsWith(' THE ' + n)) { body = c; nickname = title.slice(0, title.length - n.length - 5).trim(); break; }
+      }
+      if (!body) { errors.push([raw.trim(), `Could not find a character in "${title}"`]); continue; }
+      const eyes = charByName.get(norm(m[2]));
+      if (!eyes) { errors.push([raw.trim(), `Unknown eyes "${m[2].trim()}"`]); continue; }
+      const color = pals.find(p => norm(p.Name) === norm(m[3]));
+      if (!color) { errors.push([raw.trim(), `Unknown color "${m[3].trim()}"`]); continue; }
+      const key = keyOf(body, eyes, color);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      entries.push({ key, body, eyes, color, nickname: nickname.slice(0, 30) });
+    }
+    return { entries, errors };
+  }
+
+  const pasteDialog = document.getElementById('paste');
+  function pastePreviewHtml(text) {
+    if (!text.trim()) return '<span class="paste-muted">Paste your list above. One character per line.</span>';
+    const { entries, errors } = parseFavoriteText(text);
+    const known = entries.filter(e => state.favorites.has(e.key)).length;
+    const parts = [];
+    if (entries.length) parts.push(`<p class="paste-ok">✓ ${entries.length} character${entries.length === 1 ? '' : 's'} ready${known ? ` (${known} already saved, names will update)` : ''}</p>`);
+    if (errors.length) parts.push(`<div class="paste-err"><p>✗ ${errors.length} line${errors.length === 1 ? '' : 's'} could not be read</p><ul>${errors.map(([l, why]) => `<li><code>${esc(l)}</code><br><span>${esc(why)}</span></li>`).join('')}</ul></div>`);
+    return parts.join('');
+  }
+  function openPaste() {
+    pasteDialog.innerHTML = `
+      <div class="paste-head"><h3 id="paste-title">Paste favorites</h3><button type="button" class="guide-close" data-paste-close aria-label="Close">✕</button></div>
+      <div class="paste-body">
+        <p class="paste-muted">Paste a list copied with Copy all favorites. Each line looks like:<br><code>Henry the MEOWTCHI (Eyes: TIGAOTCHI / Body: Blue)</code></p>
+        <textarea id="paste-text" rows="8" spellcheck="false" aria-label="Favorites list" placeholder="Henry the MEOWTCHI (Eyes: TIGAOTCHI / Body: Blue)&#10;LEOPATCHI (Eyes: MAMETCHI / Body: Gray)"></textarea>
+        <div id="paste-preview" aria-live="polite">${pastePreviewHtml('')}</div>
+        <div class="paste-actions"><button type="button" class="btn" data-paste-close>Cancel</button><button type="button" class="btn primary" id="paste-add" data-paste-add disabled>Add to favorites</button></div>
+      </div>`;
+    if (!pasteDialog.open) pasteDialog.showModal();
+    document.getElementById('paste-text').focus();
+  }
+  function commitPaste() {
+    const text = document.getElementById('paste-text').value;
+    const { entries, errors } = parseFavoriteText(text);
+    let added = 0, updated = 0;
+    // Add in reverse so the first line of the pasted list ends up first on screen (newest at the top)
+    for (const e of [...entries].reverse()) {
+      const existing = state.favorites.get(e.key);
+      if (existing) { if (e.nickname && existing.nickname !== e.nickname) { existing.nickname = e.nickname; updated++; } }
+      else { state.favorites.set(e.key, { bodyId: e.body.Id, eyesId: e.eyes.Id, colorName: e.color.Name, nickname: e.nickname, canvas: generate(e.body, e.eyes, e.color) }); added++; }
+    }
+    saveFavorites();
+    state.view = 'favorites';
+    const note = [added ? `Added ${added}` : '', updated ? `updated ${updated} name${updated === 1 ? '' : 's'}` : ''].filter(Boolean).join(', ') || 'Nothing new to add';
+    if (errors.length) {
+      document.getElementById('paste-preview').innerHTML = `<p class="paste-ok">✓ ${note}</p>` + pastePreviewHtml(errors.map(x => x[0]).join('\n')).replace(/<p class="paste-ok">.*?<\/p>/, '');
+      document.getElementById('paste-add').disabled = true;
+    } else {
+      pasteDialog.close();
+    }
+    state.flash = note + (errors.length ? `, ${errors.length} line${errors.length === 1 ? '' : 's'} skipped` : '');
+    render();
+    setTimeout(() => { state.flash = ''; if (state.view === 'favorites') render(); }, 4500);
+  }
+  pasteDialog.addEventListener('input', e => {
+    if (e.target.id !== 'paste-text') return;
+    document.getElementById('paste-preview').innerHTML = pastePreviewHtml(e.target.value);
+    document.getElementById('paste-add').disabled = parseFavoriteText(e.target.value).entries.length === 0;
+  });
+  pasteDialog.addEventListener('click', e => {
+    if (e.target === pasteDialog || e.target.closest('[data-paste-close]')) return pasteDialog.close();
+    if (e.target.closest('[data-paste-add]')) commitPaste();
+  });
+
   function favoritesHtml() {
     const list = [...state.favorites.entries()].reverse();
-    if (!list.length) return '<div class="empty">No favorites yet. Open a character from History and tap the heart next to its name.</div>';
+    const flash = state.flash ? `<p class="paste-ok" role="status">✓ ${esc(state.flash)}</p>` : '';
+    if (!list.length) return `<div class="fav-bar"><button type="button" class="btn" data-paste-open>📥 Paste favorites</button></div>${flash}<div class="empty">No favorites yet. Open a character from History and tap the heart next to its name, or paste a list you copied before.</div>`;
     return `
       <p class="hist-hint">Click a character to see how to grow it. Use Rename to give it a name.</p>
+      <div class="fav-bar"><button type="button" class="btn" data-copy-all aria-live="polite">📋 Copy all favorites</button><button type="button" class="btn" data-paste-open>📥 Paste favorites</button></div>
+      ${flash}
       <div class="history-grid">
         ${list.map(([k, f]) => {
           const bodyName = byId.get(f.bodyId).Name, eyesName = byId.get(f.eyesId).Name;
@@ -852,7 +989,7 @@ function start(data, palettes, sprites) {
                 : `<span class="cap-name">${esc(favTitle(f))} ${heartBtn(k, true)}${editBtn(k, true)}</span>`}
               <span>Eyes: ${esc(eyesName)}</span><span>Body: ${esc(f.colorName)}</span>
             </div>
-            ${renaming ? '' : `<button type="button" class="mini-btn" data-fav-rename="${esc(k)}">✎ Rename</button>`}
+            ${renaming ? '' : `<div class="mini-row"><button type="button" class="mini-btn" data-fav-rename="${esc(k)}">✎ Rename</button><button type="button" class="mini-btn" data-copy-fav="${esc(k)}" aria-live="polite">📋 Copy</button></div>`}
           </div>`;
         }).join('')}
       </div>`;
@@ -1260,6 +1397,19 @@ function start(data, palettes, sprites) {
       else state.eyes = byId.get(Number(pick.dataset.id));
       return render();
     }
+    if (e.target.closest('[data-paste-open]')) return openPaste();
+    const copyAll = e.target.closest('[data-copy-all]');
+    if (copyAll) {
+      const text = [...state.favorites.values()].reverse().map(favLine).join('\n');
+      if (text) copyWithFeedback(copyAll, text, '✓ Copied');
+      return;
+    }
+    const copyOne = e.target.closest('[data-copy-fav]');
+    if (copyOne) {
+      const f = state.favorites.get(copyOne.dataset.copyFav);
+      if (f) copyWithFeedback(copyOne, favLine(f), '✓ Copied');
+      return;
+    }
     const fOpen = e.target.closest('[data-fopen]');
     if (fOpen) { const k = fOpen.dataset.fopen; state.filtersOpen[k] = !state.filtersOpen[k]; return render(); }
     const editEl = e.target.closest('[data-edit]');
@@ -1360,7 +1510,7 @@ function start(data, palettes, sprites) {
   restoreHistory();
   restoreFavorites();
   render();
-  window.__tama = { render, editEntry, toggleFavorite, guideFor, openGuide, generate, state, pals, chars, sprites, palettes }; // handy for debugging in the console
+  window.__tama = { parseFavoriteText, openPaste, render, editEntry, toggleFavorite, guideFor, openGuide, generate, state, pals, chars, sprites, palettes }; // handy for debugging in the console
 }
 
 boot().catch(err => {
