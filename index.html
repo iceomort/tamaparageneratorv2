@@ -1109,7 +1109,15 @@ function start(data, palettes, sprites) {
     // 1. Eyes and colour come from breeding: the egg takes 2 traits from the parents.
     const eyesBreedable = eyes.Stage === 5 && eyes.Name !== 'BBMARUTCHI';
     const colourWhat = pi === 0 ? `a ${group} colour (${B}'s own)` : `the ${group} parent's colour`;
-    if (eyesBreedable) {
+    // Body, eyes and colour all come from the same character: no breeding needed, just hatch a new egg.
+    const ownColour = pi === 0 || group === colourGroupFor(body);
+    const allSame = eyes.Id === body.Id && ownColour && !body.IsExternal;
+    if (allSame) {
+      steps.push({
+        title: 'Hatch a new egg',
+        hint: `No breeding needed. ${B} already supplies the eyes and colour, so any new egg will do.`,
+      });
+    } else if (eyesBreedable) {
       steps.push({
         title: `Breed ${E} with any ${group} adult`,
         hint: `The egg takes 2 traits from the parents, so it can get ${E}'s eyes and ${colourWhat}.`,
