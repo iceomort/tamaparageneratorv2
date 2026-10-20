@@ -346,7 +346,7 @@ dialog#guide { background: var(--surface); }
 <script>
 'use strict';
 
-// ── Character type mapping (Land / Water / Sky / Jade) ──────────────────────
+// ── Character type mapping (Land / Water / Sky / Jade / Ice / Tropics) ──────────────────────
 const CHAR_TYPES = {
   // LAND adults
   'MEOWTCHI': 'land', 'POCHITCHI': 'land', 'GUMAX': 'land', 'RATCHI': 'land',
@@ -372,13 +372,31 @@ const CHAR_TYPES = {
   'KACHITCHI': 'jade', 'TOKIPATCHI': 'jade', 'FOREST KUCHIPATCHI': 'jade', 'SPARROTCHI': 'jade',
   'SHIITAKETCHI': 'jade', 'PEATCHI': 'jade', 'NAPPATCHI': 'jade', 'RUSHRADITCHI': 'jade',
   'TATSUTCHI': 'jade',
+  // ICE adults
+  'OKOJOTCHI': 'ice', 'WOLFTCHI': 'ice', 'POLAKUMATCHI': 'ice', 'AZARATCHI': 'ice',
+  'ICY IRUKATCHI': 'ice', 'GINJIROTCHI': 'ice', 'RAKKOTCHI': 'ice', 'HOPPENTCHI': 'ice',
+  'LEMMINGTCHI': 'ice', 'MOOSETCHI': 'ice', 'RAICHOTCHI': 'ice', 'YUKIUSATCHI': 'ice',
+  'NERINETCHI': 'ice', 'DANGOUOTCHI': 'ice', 'YAYTYTCHI': 'ice', 'YUKIRARATCHI': 'ice',
+  'HOBOHORNTCHI': 'ice',
+  // ICE kid and young stages
+  'FROZEN KID': 'ice', 'FROZEN ROAR YOUNG': 'ice', 'FROZEN TODDLE YOUNG': 'ice', 'FROZEN GLIDE YOUNG': 'ice',
+  'FROZEN FLOAT YOUNG': 'ice',
+  // TROPICS adults
+  'TROPICAL MEOWTCHI': 'tropics', 'MADILLOTCHI': 'tropics', 'TARANTYTCHI': 'tropics', 'CROCOTCHI': 'tropics',
+  'TROPICAL MAMETCHI': 'tropics', 'PAROROTCHI': 'tropics', 'TENATCHI': 'tropics', 'NAMAKEMOTCHI': 'tropics',
+  'KUIKUITCHI': 'tropics', 'POIZUTCHI': 'tropics', 'CHAMELEOTCHI': 'tropics', 'IGUANATCHI': 'tropics',
+  'YASHIKITCHI': 'tropics', 'TROPICAL POTSUNENTCHI': 'tropics', 'ANANATCHI': 'tropics', 'AVOVOTCHI': 'tropics',
+  'MANAPATCHI': 'tropics',
+  // TROPICS kid and young stages
+  'TROPICAL KID': 'tropics', 'TROPICAL ROAR YOUNG': 'tropics', 'TROPICAL TODDLE YOUNG': 'tropics', 'TROPICAL LICK YOUNG': 'tropics',
+  'TROPICAL SPROUT YOUNG': 'tropics',
 };
 const getCharType = c => CHAR_TYPES[c.Name.toUpperCase()] || 'other';
 
 const HISTORY_SHOWN = 18;
 const HISTORY_STORED = 100;
-const APP_VERSION = 'v4.3';          // bump when you ship a change
-const APP_UPDATED = '8 Oct 2026';    // and update the date here
+const APP_VERSION = 'v4.5';          // bump when you ship a change
+const APP_UPDATED = '20 Oct 2026';    // and update the date here
 const STORAGE_KEY = 'tamapara-history-v1';
 const FAV_KEY = 'tamapara-favorites-v1';
 const PENCIL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
@@ -639,7 +657,7 @@ function start(data, palettes, sprites) {
   }
 
   // ── State ──────────────────────────────────────────────────────────────────
-  const opts = { land: true, water: true, sky: true, jade: true, nonBreedableEyes: false, externalEyes: false, nonBreedableBodies: false, externalBodies: false };
+  const opts = { land: true, water: true, sky: true, jade: true, ice: true, tropics: true, nonBreedableEyes: false, externalEyes: false, nonBreedableBodies: false, externalBodies: false };
   const state = {
     body: null, eyes: null, colorIdx: 0,
     history: new Map(),        // key -> { bodyId, eyesId, colorName, canvas }
@@ -680,13 +698,15 @@ function start(data, palettes, sprites) {
   ];
   const EYES_MOOD = {};
   const addMood = (mood, names) => names.forEach(n => { EYES_MOOD[n] = mood; });
-  addMood('tough', ['GUMAX', 'RATCHI', 'MOLMOTCHI', 'HEAVYTCHI', 'IMORITCHI', 'SHARKTCHI', 'GUSOKUTCHI', 'EAGLETCHI', 'KABUTOTCHI',
-    'TIGAOTCHI', 'SPARROTCHI', 'SHIITAKETCHI', 'CHODRACOTCHI', 'BEAVERTCHI']);
-  addMood('sad', ['SHEEPTCHI', 'LEOPATCHI', 'POTSUNENTCHI', 'BATATCHI', 'MAGMATCHI', 'SUIGYUTCHI', 'PANBOOTCHI', 'KIWITCHI']);
-  addMood('small', ['TUSTUSTCHI', 'KAMETCHI', 'KUJIRATCHI', 'URUOTCHI', 'ANKOTCHI', 'OTOTOTCHI', 'AMEFURATCHI', 'BATCHI',
-    'TENTOTCHI', 'HATCHITCHI', 'KUCHIPATCHI', 'ISHIKOROTCHI', 'TANOONTCHI', 'TOKIPATCHI', 'FOREST KUCHIPATCHI',
-    'PEATCHI', 'NAPPATCHI', 'RUSHRADITCHI', 'TATSUTCHI',
-    'POCHITCHI', 'MIMITCHI', 'SEBIRETCHI', 'IRUKATCHI', 'KURARATCHI', 'MENDAKOTCHI', 'YAYACORNTCHI']);
+  addMood('tough', ['GUMAX', 'RATCHI', 'MOLMOTCHI', 'HEAVYTCHI', 'BEAVERTCHI', 'IMORITCHI', 'SHARKTCHI', 'GUSOKUTCHI', 'EAGLETCHI', 'KABUTOTCHI',
+    'CHODRACOTCHI', 'TIGAOTCHI', 'SPARROTCHI', 'SHIITAKETCHI', 'TARANTYTCHI', 'CROCOTCHI', 'IGUANATCHI', 'WOLFTCHI', 'POLAKUMATCHI',
+    'MOOSETCHI', 'LEMMINGTCHI', 'NERINETCHI', 'YAYTYTCHI']);
+  addMood('sad', ['SHEEPTCHI', 'LEOPATCHI', 'POTSUNENTCHI', 'BATATCHI', 'KIWITCHI', 'MAGMATCHI', 'SUIGYUTCHI', 'PANBOOTCHI', 'NAMAKEMOTCHI',
+    'TROPICAL POTSUNENTCHI', 'RAKKOTCHI', 'DANGOUOTCHI', 'HOBOHORNTCHI']);
+  addMood('small', ['POCHITCHI', 'MIMITCHI', 'SEBIRETCHI', 'TUSTUSTCHI', 'IRUKATCHI', 'KAMETCHI', 'KUJIRATCHI', 'URUOTCHI', 'ANKOTCHI', 'OTOTOTCHI',
+    'KURARATCHI', 'MENDAKOTCHI', 'AMEFURATCHI', 'BATCHI', 'TENTOTCHI', 'HATCHITCHI', 'KUCHIPATCHI', 'ISHIKOROTCHI', 'YAYACORNTCHI',
+    'TANOONTCHI', 'TOKIPATCHI', 'FOREST KUCHIPATCHI', 'PEATCHI', 'NAPPATCHI', 'RUSHRADITCHI', 'TATSUTCHI', 'TENATCHI', 'KUIKUITCHI',
+    'YASHIKITCHI', 'ANANATCHI', 'AVOVOTCHI', 'MANAPATCHI', 'AZARATCHI', 'GINJIROTCHI', 'HOPPENTCHI', 'YUKIUSATCHI', 'YUKIRARATCHI']);
   // Baby, kid and young stages all share plain dot eyes; anything not listed counts as Cute.
   const eyesMood = c => (c.Stage < 5 || c.Name === 'BBMARUTCHI') ? 'small' : (EYES_MOOD[c.Name.toUpperCase()] || 'cute');
   // Special adds to a style rather than replacing it: Chodracotchi's eyes stay Tough, for example.
@@ -698,6 +718,8 @@ function start(data, palettes, sprites) {
     if (t === 'water' && !opts.water) return false;
     if (t === 'sky' && !opts.sky) return false;
     if (t === 'jade' && !opts.jade) return false;
+    if (t === 'ice' && !opts.ice) return false;
+    if (t === 'tropics' && !opts.tropics) return false;
     if (c.IsJade && !opts.jade) return false;
     return true;
   }
@@ -725,13 +747,17 @@ function start(data, palettes, sprites) {
   const BODY_TYPE = {};
   const addType = (type, names) => names.forEach(n => { BODY_TYPE[n] = type; });
   addType('mammal', ['MEOWTCHI', 'POCHITCHI', 'GUMAX', 'RATCHI', 'MAMETCHI', 'MIMITCHI', 'MOLMOTCHI', 'BEAVERTCHI', 'MONGATCHI', 'BATCHI',
-    'YAYACORNTCHI', 'KONKOTCHI', 'TIGAOTCHI', 'TANOONTCHI', 'LESSAPANTCHI', 'KANOKOTCHI', 'SUIGYUTCHI', 'PANBOOTCHI', 'MEERTCHI', 'SHYONTCHI']);
-  addType('bird', ['TUSTUSTCHI', 'HORHOTCHI', 'EAGLETCHI', 'KUCHIPATCHI', 'BATATCHI', 'PEACOTCHI', 'KIWITCHI', 'FOREST HORHOTCHI',
-    'KACHITCHI', 'TOKIPATCHI', 'FOREST KUCHIPATCHI', 'SPARROTCHI', 'OMARUTCHI']);
+    'YAYACORNTCHI', 'KONKOTCHI', 'TIGAOTCHI', 'TANOONTCHI', 'LESSAPANTCHI', 'KANOKOTCHI', 'SUIGYUTCHI', 'PANBOOTCHI',
+    'TROPICAL MEOWTCHI', 'MADILLOTCHI', 'TENATCHI', 'NAMAKEMOTCHI', 'KUIKUITCHI', 'WOLFTCHI', 'OKOJOTCHI', 'POLAKUMATCHI',
+    'RAKKOTCHI', 'MOOSETCHI', 'LEMMINGTCHI', 'YUKIUSATCHI', 'MEERTCHI', 'SHYONTCHI']);
+  addType('bird', ['TUSTUSTCHI', 'HORHOTCHI', 'EAGLETCHI', 'KUCHIPATCHI', 'BATATCHI', 'PEACOTCHI', 'KIWITCHI', 'FOREST HORHOTCHI', 'KACHITCHI',
+    'TOKIPATCHI', 'FOREST KUCHIPATCHI', 'SPARROTCHI', 'PAROROTCHI', 'HOPPENTCHI', 'RAICHOTCHI', 'OMARUTCHI']);
   addType('insect', ['GUSOKUTCHI', 'PAPILLOTCHI', 'KABUTOTCHI', 'TENTOTCHI', 'HATCHITCHI']);
-  addType('reptile', ['SEBIRETCHI', 'LEOPATCHI', 'ELIZARDOTCHI', 'HEAVYTCHI', 'KAMETCHI', 'CHODRACOTCHI', 'TATSUTCHI']);
+  addType('reptile', ['SEBIRETCHI', 'LEOPATCHI', 'ELIZARDOTCHI', 'HEAVYTCHI', 'KAMETCHI', 'CHODRACOTCHI', 'TATSUTCHI', 'CROCOTCHI', 'CHAMELEOTCHI',
+    'IGUANATCHI']);
   addType('aqua', ['IRUKATCHI', 'KUJIRATCHI', 'AXOLOPATCHI', 'IMORITCHI', 'KAWAZUTCHI', 'URUOTCHI', 'TACHUTCHI', 'SHARKTCHI', 'ANKOTCHI',
-    'OTOTOTCHI', 'KURARATCHI', 'MENDAKOTCHI', 'AMEFURATCHI', 'MERMARINTCHI']);
+    'OTOTOTCHI', 'KURARATCHI', 'MENDAKOTCHI', 'AMEFURATCHI', 'MERMARINTCHI', 'POIZUTCHI', 'MANAPATCHI', 'AZARATCHI', 'ICY IRUKATCHI',
+    'GINJIROTCHI', 'NERINETCHI', 'DANGOUOTCHI', 'YAYTYTCHI', 'HOBOHORNTCHI']);
   const typeOf = c => BODY_TYPE[c.Name.toUpperCase()] || 'other';
   const matchesCare = c => state.stars.size === 0 || state.stars.has(careOf(c));
   const matchesType = c => state.types.size === 0 || state.types.has(typeOf(c));
@@ -1025,8 +1051,8 @@ function start(data, palettes, sprites) {
 
   // ── Rendering ──────────────────────────────────────────────────────────────
   // ── Growing guide ──────────────────────────────────────────────────────────
-  // Data from the official Tamagotchi Paradise growth charts. The game has four biomes (Jade Forest,
-  // Land, Water, Sky) and each young stage lists its adults from the top care tier down
+  // Data from the official Tamagotchi Paradise growth charts. The game has six biomes (Jade Forest,
+  // Land, Water, Sky, Ice, Tropics) and each young stage lists its adults from the top care tier down
   // (tier 0 = 5 food, 5 happy).
   const GROWTH_PATHS = [
     { field: 'Land', young: 'Roar Young', food: 'Meat', adults: ['MEOWTCHI', 'POCHITCHI', 'GUMAX', 'RATCHI'] },
@@ -1045,19 +1071,31 @@ function start(data, palettes, sprites) {
     { field: 'Jade Forest', young: 'Toddle Young', food: 'Bamboo Grass', adults: ['LESSAPANTCHI', 'KANOKOTCHI', 'SUIGYUTCHI', 'PANBOOTCHI'] },
     { field: 'Jade Forest', young: 'Chirp Young', food: 'Pomegranate', adults: ['KACHITCHI', 'TOKIPATCHI', 'FOREST KUCHIPATCHI', 'SPARROTCHI'] },
     { field: 'Jade Forest', young: 'Sprout Young', food: null, adults: ['SHIITAKETCHI', 'PEATCHI', 'NAPPATCHI', 'RUSHRADITCHI'] },
+    { field: 'Ice', young: 'Roar Young', food: 'Frozen Meat', adults: ['OKOJOTCHI', 'WOLFTCHI', 'POLAKUMATCHI', 'AZARATCHI'] },
+    { field: 'Ice', young: 'Glide Young', food: 'Frozen Seafood', adults: ['ICY IRUKATCHI', 'GINJIROTCHI', 'RAKKOTCHI', 'HOPPENTCHI'] },
+    { field: 'Ice', young: 'Toddle Young', food: 'Frozen Berry', adults: ['LEMMINGTCHI', 'MOOSETCHI', 'RAICHOTCHI', 'YUKIUSATCHI'] },
+    { field: 'Ice', young: 'Float Young', food: null, adults: ['NERINETCHI', 'DANGOUOTCHI', 'YAYTYTCHI', 'YUKIRARATCHI'] },
+    { field: 'Tropical', young: 'Roar Young', food: 'Tropical Meat', adults: ['TROPICAL MEOWTCHI', 'MADILLOTCHI', 'TARANTYTCHI', 'CROCOTCHI'] },
+    { field: 'Tropical', young: 'Toddle Young', food: 'Tropical Fruit', adults: ['TROPICAL MAMETCHI', 'PAROROTCHI', 'TENATCHI', 'NAMAKEMOTCHI'] },
+    { field: 'Tropical', young: 'Lick Young', food: 'Tropical Critter', adults: ['KUIKUITCHI', 'POIZUTCHI', 'CHAMELEOTCHI', 'IGUANATCHI'] },
+    { field: 'Tropical', young: 'Sprout Young', food: null, adults: ['YASHIKITCHI', 'TROPICAL POTSUNENTCHI', 'ANANATCHI', 'AVOVOTCHI'] },
   ];
+  // Young stages of the newer biomes are named with a prefix in data.json, like FOREST ROAR YOUNG.
+  const YOUNG_PREFIX = { 'Jade Forest': 'FOREST ', 'Ice': 'FROZEN ', 'Tropical': 'TROPICAL ' };
   const BODY_GROWTH = {}, YOUNG_GROWTH = {};
   for (const path of GROWTH_PATHS) {
     path.adults.forEach((n, tier) => { BODY_GROWTH[n] = { ...path, tier }; });
-    YOUNG_GROWTH[((path.field === 'Jade Forest' ? 'FOREST ' : '') + path.young).toUpperCase()] = path;
+    YOUNG_GROWTH[((YOUNG_PREFIX[path.field] || '') + path.young).toUpperCase()] = path;
   }
   const SPECIAL_GROWTH = {
     'CHODRACOTCHI': { field: 'Land', avoid: 'Sprout Young', connect: 'Connect your Pink Land shell with a Blue Water shell and a Purple Sky shell.' },
     'MERMARINTCHI': { field: 'Water', avoid: 'Float Young', connect: 'Connect your Blue Water shell with a Pink Land shell and a Purple Sky shell.' },
     'YAYACORNTCHI': { field: 'Sky', avoid: 'Rocky Young', connect: 'Connect your Purple Sky shell with a Pink Land shell and a Blue Water shell.' },
     'TATSUTCHI': { field: 'Jade Forest', avoid: 'Sprout Young', connect: 'Connect your Jade Forest shell with two shells of different colours.' },
+    'HOBOHORNTCHI': { field: 'Ice', avoid: 'Float Young', connect: 'Connect your White Glacier shell with two shells of different colours.' },
+    'MANAPATCHI': { field: 'Tropical', avoid: 'Sprout Young', connect: 'Connect your Orange Tropics shell with two shells of different colours.' },
   };
-  const KID_FIELD = { 'LAND KID': 'Land', 'WATER KID': 'Water', 'SKY KID': 'Sky', 'FOREST KID': 'Jade Forest' };
+  const KID_FIELD = { 'LAND KID': 'Land', 'WATER KID': 'Water', 'SKY KID': 'Sky', 'FOREST KID': 'Jade Forest', 'FROZEN KID': 'Ice', 'TROPICAL KID': 'Tropical' };
   const TIERS = [
     ['5 food and 5 happy', 'Fill the hunger meter 5 times and the happy meter 5 times, with no care mistakes.'],
     ['4 food and 4 happy, or 1 care mistake', 'Either fill the hunger meter 4 times and the happy meter 4 times, or make 1 care mistake.'],
@@ -1086,6 +1124,12 @@ function start(data, palettes, sprites) {
     'Peking Meat': ['Chashu Pork', 'Peking Meat', 'Warm Buns'],
     'Bamboo Grass': ['Bamboo Grass', 'Sesame Leaves', 'Bamboo Leaf Rice Cake', 'Sesame Pancake'],
     'Pomegranate': ['Persimmon', 'Pomegranate', 'Che Thai'],
+    'Frozen Meat': ['Canned Meat', 'Frozen Meat', 'Beef Stroganoff'],
+    'Frozen Seafood': ['Salmon Roe', 'Northern Seafood', 'Blinis'],
+    'Frozen Berry': ['Red Berries', 'Beet', 'Borscht', 'Hot Tea with Jam'],
+    'Tropical Meat': ['Tropical Patty', 'Tropical Steak', 'Hawaiian Burger'],
+    'Tropical Fruit': ['Banana', 'Tropical Fruits', 'Fruit Jelly', 'Banana on a Stick'],
+    'Tropical Critter': ['Meal Critters', 'Butterfly Snacks', 'Butterfly Salad'],
   };
   const joinOr = list => list.length < 2 ? list.join('') : list.slice(0, -1).join(', ') + ' or ' + list[list.length - 1];
   const foodStep = path => path.food
@@ -1347,6 +1391,8 @@ function start(data, palettes, sprites) {
               ${check('water', '💧 Water', opts.water)}
               ${check('sky', '☁️ Sky', opts.sky)}
               ${check('jade', '🎋 Jade', opts.jade)}
+              ${check('ice', '❄️ Ice', opts.ice)}
+              ${check('tropics', '🌺 Tropics', opts.tropics)}
             </div>
           </section>
           <section class="pick-grid" aria-label="Pickers">

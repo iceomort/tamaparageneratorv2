@@ -76,6 +76,40 @@
       ]
     },
     {
+      "Name": "TROPICAL KID",
+      "Id": 2091,
+      "Stage": 3,
+      "IsWave1": true,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        1,
+        32
+      ],
+      "MouthPos": [
+        0,
+        32
+      ]
+    },
+    {
+      "Name": "FROZEN KID",
+      "Id": 2113,
+      "Stage": 3,
+      "IsWave1": true,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        1,
+        32
+      ],
+      "MouthPos": [
+        0,
+        32
+      ]
+    },
+    {
       "Name": "ROAR YOUNG",
       "Id": 3005,
       "Stage": 4,
@@ -313,6 +347,142 @@
       "MouthPos": [
         0,
         32
+      ]
+    },
+    {
+      "Name": "TROPICAL ROAR YOUNG",
+      "Id": 3092,
+      "Stage": 4,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        17
+      ],
+      "MouthPos": [
+        0,
+        16
+      ]
+    },
+    {
+      "Name": "TROPICAL TODDLE YOUNG",
+      "Id": 3093,
+      "Stage": 4,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        24
+      ],
+      "MouthPos": [
+        0,
+        32
+      ]
+    },
+    {
+      "Name": "TROPICAL LICK YOUNG",
+      "Id": 3094,
+      "Stage": 4,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        -1,
+        18
+      ],
+      "MouthPos": [
+        1,
+        24
+      ]
+    },
+    {
+      "Name": "TROPICAL SPROUT YOUNG",
+      "Id": 3095,
+      "Stage": 4,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        29
+      ],
+      "MouthPos": [
+        0,
+        32
+      ]
+    },
+    {
+      "Name": "FROZEN ROAR YOUNG",
+      "Id": 3114,
+      "Stage": 4,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        17
+      ],
+      "MouthPos": [
+        0,
+        16
+      ]
+    },
+    {
+      "Name": "FROZEN TODDLE YOUNG",
+      "Id": 3115,
+      "Stage": 4,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        24
+      ],
+      "MouthPos": [
+        0,
+        32
+      ]
+    },
+    {
+      "Name": "FROZEN GLIDE YOUNG",
+      "Id": 3116,
+      "Stage": 4,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        -3,
+        30
+      ],
+      "MouthPos": [
+        -3,
+        32
+      ]
+    },
+    {
+      "Name": "FROZEN FLOAT YOUNG",
+      "Id": 3117,
+      "Stage": 4,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        17
+      ],
+      "MouthPos": [
+        0,
+        19
       ]
     },
     {
@@ -1348,6 +1518,584 @@
       "MouthPos": [
         0,
         11
+      ]
+    },
+    {
+      "Name": "TROPICAL MEOWTCHI",
+      "Id": 4096,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        20
+      ],
+      "MouthPos": [
+        0,
+        20
+      ]
+    },
+    {
+      "Name": "MADILLOTCHI",
+      "Id": 4097,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        14
+      ],
+      "MouthPos": [
+        -1,
+        17
+      ]
+    },
+    {
+      "Name": "TARANTYTCHI",
+      "Id": 4098,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        24
+      ],
+      "MouthPos": [
+        0,
+        32
+      ]
+    },
+    {
+      "Name": "CROCOTCHI",
+      "Id": 4099,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        14
+      ],
+      "MouthPos": [
+        0,
+        24
+      ]
+    },
+    {
+      "Name": "TROPICAL MAMETCHI",
+      "Id": 4100,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        20
+      ],
+      "MouthPos": [
+        0,
+        20
+      ]
+    },
+    {
+      "Name": "PAROROTCHI",
+      "Id": 4101,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        -1,
+        11
+      ],
+      "MouthPos": [
+        0,
+        13
+      ]
+    },
+    {
+      "Name": "TENATCHI",
+      "Id": 4102,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        9
+      ],
+      "MouthPos": [
+        0,
+        9
+      ]
+    },
+    {
+      "Name": "NAMAKEMOTCHI",
+      "Id": 4103,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        19
+      ],
+      "MouthPos": [
+        0,
+        22
+      ]
+    },
+    {
+      "Name": "KUIKUITCHI",
+      "Id": 4104,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        12
+      ],
+      "MouthPos": [
+        0,
+        13
+      ]
+    },
+    {
+      "Name": "POIZUTCHI",
+      "Id": 4105,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        14
+      ],
+      "MouthPos": [
+        0,
+        16
+      ]
+    },
+    {
+      "Name": "CHAMELEOTCHI",
+      "Id": 4106,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        -6,
+        17
+      ],
+      "MouthPos": [
+        0,
+        26
+      ]
+    },
+    {
+      "Name": "IGUANATCHI",
+      "Id": 4107,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        15
+      ],
+      "MouthPos": [
+        0,
+        21
+      ]
+    },
+    {
+      "Name": "YASHIKITCHI",
+      "Id": 4108,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        25
+      ],
+      "MouthPos": [
+        0,
+        30
+      ]
+    },
+    {
+      "Name": "TROPICAL POTSUNENTCHI",
+      "Id": 4109,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        27
+      ],
+      "MouthPos": [
+        0,
+        28
+      ]
+    },
+    {
+      "Name": "ANANATCHI",
+      "Id": 4110,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        18
+      ],
+      "MouthPos": [
+        0,
+        24
+      ]
+    },
+    {
+      "Name": "AVOVOTCHI",
+      "Id": 4111,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        17
+      ],
+      "MouthPos": [
+        0,
+        24
+      ]
+    },
+    {
+      "Name": "MANAPATCHI",
+      "Id": 4112,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        10
+      ],
+      "MouthPos": [
+        0,
+        18
+      ]
+    },
+    {
+      "Name": "WOLFTCHI",
+      "Id": 4118,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        -2,
+        13
+      ],
+      "MouthPos": [
+        0,
+        19
+      ]
+    },
+    {
+      "Name": "OKOJOTCHI",
+      "Id": 4119,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        1,
+        9
+      ],
+      "MouthPos": [
+        0,
+        10
+      ]
+    },
+    {
+      "Name": "POLAKUMATCHI",
+      "Id": 4120,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        6
+      ],
+      "MouthPos": [
+        0,
+        8
+      ]
+    },
+    {
+      "Name": "AZARATCHI",
+      "Id": 4121,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        11
+      ],
+      "MouthPos": [
+        0,
+        17
+      ]
+    },
+    {
+      "Name": "ICY IRUKATCHI",
+      "Id": 4122,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        13
+      ],
+      "MouthPos": [
+        0,
+        14
+      ]
+    },
+    {
+      "Name": "GINJIROTCHI",
+      "Id": 4123,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        12
+      ],
+      "MouthPos": [
+        0,
+        13
+      ]
+    },
+    {
+      "Name": "HOPPENTCHI",
+      "Id": 4124,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        9
+      ],
+      "MouthPos": [
+        0,
+        16
+      ]
+    },
+    {
+      "Name": "RAKKOTCHI",
+      "Id": 4125,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        15
+      ],
+      "MouthPos": [
+        0,
+        19
+      ]
+    },
+    {
+      "Name": "MOOSETCHI",
+      "Id": 4126,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        7
+      ],
+      "MouthPos": [
+        0,
+        16
+      ]
+    },
+    {
+      "Name": "LEMMINGTCHI",
+      "Id": 4127,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        20
+      ],
+      "MouthPos": [
+        0,
+        24
+      ]
+    },
+    {
+      "Name": "RAICHOTCHI",
+      "Id": 4128,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        3
+      ],
+      "MouthPos": [
+        0,
+        5
+      ]
+    },
+    {
+      "Name": "YUKIUSATCHI",
+      "Id": 4129,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        18
+      ],
+      "MouthPos": [
+        0,
+        23
+      ]
+    },
+    {
+      "Name": "NERINETCHI",
+      "Id": 4130,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        15
+      ],
+      "MouthPos": [
+        0,
+        17
+      ]
+    },
+    {
+      "Name": "DANGOUOTCHI",
+      "Id": 4131,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        -3,
+        26
+      ],
+      "MouthPos": [
+        0,
+        26
+      ]
+    },
+    {
+      "Name": "YAYTYTCHI",
+      "Id": 4132,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        25
+      ],
+      "MouthPos": [
+        0,
+        31
+      ]
+    },
+    {
+      "Name": "YUKIRARATCHI",
+      "Id": 4133,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        0,
+        19
+      ],
+      "MouthPos": [
+        0,
+        28
+      ]
+    },
+    {
+      "Name": "HOBOHORNTCHI",
+      "Id": 4134,
+      "Stage": 5,
+      "IsWave1": false,
+      "IsJade": false,
+      "IsWave3": true,
+      "IsExternal": false,
+      "EyePos": [
+        -3,
+        13
+      ],
+      "MouthPos": [
+        0,
+        18
       ]
     },
     {
