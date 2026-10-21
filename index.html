@@ -413,12 +413,29 @@ dialog#guide { background: var(--surface); }
 .match-chip canvas { width: 28px; height: 28px; }
 .match-chip canvas.eyes-thumb { width: 52px; height: 26px; }
 .match-label { font-size: 11px; font-weight: 500; opacity: .8; }
+/* diary entry pop-up */
+dialog#diary-dialog { width: min(620px, calc(100% - 24px)); max-height: 92vh; padding: 0; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); }
+dialog#diary-dialog::backdrop { background: rgba(0, 0, 0, .55); }
+.dd-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 18px 6px; position: sticky; top: 0; z-index: 1; background: var(--surface); }
+.dd-head h3 { margin: 0; font-size: 1.15rem; }
+.dd-sub { display: block; font-size: 13px; font-weight: 500; color: var(--muted); }
+.dd-head .guide-close { position: static; flex: none; }
+.dd-body { padding: 6px 18px 18px; }
+.dd-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.dd-actions .btn { width: auto; padding: 8px 18px; font-size: 14px; }
+.dd-save { background: var(--accent); border-color: var(--accent); color: #fff; }
+.dd-msg { flex: 1; margin: 0; font-size: 13px; font-weight: 600; color: #e5484d; }
+.dd-msg:empty { display: none; }
+.diary-actions { display: inline-flex; gap: 6px; }
+.diary-new { margin: 10px 0; }
+.diary-new .btn { width: auto; padding: 7px 16px; font-size: 14px; }
 </style>
 </head>
 <body>
 <main id="app"><div class="loading">Loading sprites…</div></main>
 <dialog id="guide" aria-labelledby="guide-title"></dialog>
 <dialog id="paste" aria-labelledby="paste-title"></dialog>
+<dialog id="diary-dialog" aria-labelledby="dd-title"></dialog>
 
 <script>
 'use strict';
@@ -472,8 +489,8 @@ const getCharType = c => CHAR_TYPES[c.Name.toUpperCase()] || 'other';
 
 const HISTORY_SHOWN = 18;
 const HISTORY_STORED = 100;
-const APP_VERSION = 'v4.5';          // bump when you ship a change
-const APP_UPDATED = '20 Oct 2026';    // and update the date here
+const APP_VERSION = 'v4.6';          // bump when you ship a change
+const APP_UPDATED = '21 Oct 2026';    // and update the date here
 const STORAGE_KEY = 'tamapara-history-v1';
 const FAV_KEY = 'tamapara-favorites-v1';
 const PENCIL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
@@ -1254,7 +1271,7 @@ function start(data, palettes, sprites) {
     }
     const moods = Object.entries(EMOTES)
       .map(([k, e]) => `<button type="button" class="pic-mood" data-pic-mood="${k}" data-mid="${mid}" aria-pressed="${d.mood === k}" title="${e.label}"><canvas data-mood-icon="${k}" aria-hidden="true"></canvas><span>${e.label}</span></button>`).join('');
-    const preview = d.stage !== 'none' || d.mood ? '<div class="pic-preview"><canvas data-pic-preview aria-hidden="true"></canvas></div>' : '';
+    const preview = draftImg(m) ? '<div class="pic-preview"><canvas data-pic-preview aria-hidden="true"></canvas></div>' : '';
     return `<div class="pic-pick" data-pic="${mid}">
       <div class="pic-row"><span class="pic-label">Picture</span><div class="pic-chips">${stageBtns}</div></div>
       ${chars}
@@ -1277,10 +1294,10 @@ function start(data, palettes, sprites) {
     });
   }
   function refreshPicker(id) {
-    const m = state.memories.find(x => x.id === id), box = app.querySelector(`[data-pic="${id}"]`);
+    const m = state.memories.find(x => x.id === id), box = diaryDialog.querySelector(`[data-pic="${id}"]`);
     if (!m || !box) return;
     box.outerHTML = picHtml(m);
-    paintPictures(app.querySelector(`[data-pic="${id}"]`).parentElement);
+    paintPictures(diaryDialog.querySelector(`[data-pic="${id}"]`).parentElement);
   }
   function picCaption(im) {
     const st = PIC_STAGES.find(s => s.key === im.stage);
@@ -1291,7 +1308,7 @@ function start(data, palettes, sprites) {
     return [...m.diary].map((d, i) => [d, i]).sort((a, b) => b[0].date.localeCompare(a[0].date) || b[1] - a[1]).map(([d]) => `
       <li class="diary-entry">
         <div class="diary-main">
-          <div class="diary-meta"><span>${esc(d.date)} &middot; <span data-diary-age="${esc(d.id)}" data-date="${esc(d.date)}">${esc(ageText(ageOn(m, d.date)))}</span></span><button type="button" class="mini-btn" data-diary-del="${esc(m.id)}" data-eid="${esc(d.id)}">Delete</button></div>
+          <div class="diary-meta"><span>${esc(d.date)} &middot; <span data-diary-age="${esc(d.id)}" data-date="${esc(d.date)}">${esc(ageText(ageOn(m, d.date)))}</span></span><span class="diary-actions"><button type="button" class="mini-btn" data-diary-edit="${esc(m.id)}" data-eid="${esc(d.id)}">Edit</button><button type="button" class="mini-btn" data-diary-del="${esc(m.id)}" data-eid="${esc(d.id)}">Delete</button></span></div>
           <p>${esc(d.text)}</p>
         </div>
         ${d.img ? `<div class="diary-pic" title="${esc(d.img.charId ? nice(byId.get(d.img.charId).Name) : 'This mon')}"><canvas data-diary-canvas data-mid="${esc(m.id)}" data-eid="${esc(d.id)}" aria-hidden="true"></canvas><span class="diary-pic-cap">${esc(picCaption(d.img))}</span></div>` : ''}
@@ -1324,12 +1341,7 @@ function start(data, palettes, sprites) {
               <p class="mem-msg" data-mem-msg role="alert"></p>
               <details class="mem-diary" data-mem-details="${esc(m.id)}"${state.memOpen.has(m.id) ? ' open' : ''}>
                 <summary>Diary (${m.diary.length})</summary>
-                <div class="diary-add">
-                  <input type="date" data-diary-date="${esc(m.id)}" value="${today}" max="${today}" aria-label="Entry date">
-                  <textarea data-diary-text="${esc(m.id)}" rows="3" maxlength="2000" placeholder="What happened today? (Ctrl or Cmd + Enter to add)" aria-label="Diary entry"></textarea>
-                  ${picHtml(m)}
-                  <button type="button" class="btn" data-diary-add="${esc(m.id)}">Add entry</button>
-                </div>
+                <div class="diary-new"><button type="button" class="btn" data-diary-new="${esc(m.id)}">＋ New entry</button></div>
                 <ul class="diary-list">${diaryItemsHtml(m)}</ul>
               </details>
             </div>
@@ -2062,23 +2074,6 @@ function start(data, palettes, sprites) {
     if (houseEl) { addMemory(houseEl.dataset.memoryAdd); render(); return scrollToTabs(); }
     if (e.target.closest('[data-mem-export]')) return exportMemories();
     if (e.target.closest('[data-mem-import]')) return importMemories();
-    const picStage = e.target.closest('[data-pic-stage]');
-    if (picStage) {
-      const d = draftOf(picStage.dataset.mid), k = picStage.dataset.picStage;
-      d.stage = k;
-      const st = PIC_STAGES.find(s => s.key === k);
-      const list = st && st.key !== 'adult' ? stageChars(st.stage) : [];
-      d.charId = list.length === 1 ? list[0].Id : null;   // a single choice (the baby) is picked for you
-      return refreshPicker(picStage.dataset.mid);
-    }
-    const picChar = e.target.closest('[data-pic-char]');
-    if (picChar) { draftOf(picChar.dataset.mid).charId = Number(picChar.dataset.picChar); return refreshPicker(picChar.dataset.mid); }
-    const picMood = e.target.closest('[data-pic-mood]');
-    if (picMood) {
-      const d = draftOf(picMood.dataset.mid);
-      d.mood = d.mood === picMood.dataset.picMood ? '' : picMood.dataset.picMood;
-      return refreshPicker(picMood.dataset.mid);
-    }
     const memMove = e.target.closest('[data-mem-move]');
     if (memMove) {
       const i = state.memories.findIndex(x => x.id === memMove.dataset.memMove), j = i + Number(memMove.dataset.dir);
@@ -2103,8 +2098,10 @@ function start(data, palettes, sprites) {
       if (m) { m.death = ''; saveMemories(); render(); }
       return;
     }
-    const diaryAdd = e.target.closest('[data-diary-add]');
-    if (diaryAdd) return addDiaryEntry(diaryAdd.dataset.diaryAdd);
+    const diaryNew = e.target.closest('[data-diary-new]');
+    if (diaryNew) return openDiaryDialog(diaryNew.dataset.diaryNew, null);
+    const diaryEdit = e.target.closest('[data-diary-edit]');
+    if (diaryEdit) return openDiaryDialog(diaryEdit.dataset.diaryEdit, diaryEdit.dataset.eid);
     const diaryDel = e.target.closest('[data-diary-del]');
     if (diaryDel) {
       const m = state.memories.find(x => x.id === diaryDel.dataset.diaryDel);
@@ -2166,23 +2163,83 @@ function start(data, palettes, sprites) {
     render();
   });
 
-  function addDiaryEntry(id) {
-    const m = state.memories.find(x => x.id === id);
-    const card = app.querySelector(`[data-mem="${id}"]`);
-    if (!m || !card) return;
-    const ta = card.querySelector('[data-diary-text]'), dt = card.querySelector('[data-diary-date]');
+  // ── Diary entry pop-up (new and edit) ───────────────────────────────────────
+  const diaryDialog = document.getElementById('diary-dialog');
+  let ddState = { mid: null, eid: null };
+  const ddMsg = text => { const el = diaryDialog.querySelector('[data-dd-msg]'); if (el) el.textContent = text; };
+  function openDiaryDialog(mid, eid) {
+    const m = state.memories.find(x => x.id === mid);
+    const entry = eid ? m && m.diary.find(x => x.id === eid) : null;
+    if (!m || (eid && !entry)) return;
+    ddState = { mid, eid: eid || null };
+    const im = entry && entry.img;
+    state.memDraft[mid] = im ? { stage: im.stage, charId: im.charId || null, mood: im.mood || '' } : { stage: 'none', charId: null, mood: '' };
+    const today = todayStr();
+    diaryDialog.innerHTML = `
+      <div class="dd-head"><h3 id="dd-title">${entry ? 'Edit diary entry' : 'New diary entry'}<span class="dd-sub">${esc(m.nickname || byId.get(m.bodyId).Name)}</span></h3><button type="button" class="guide-close" data-dd-close aria-label="Close">✕</button></div>
+      <div class="dd-body"><div class="diary-add">
+        <input type="date" data-dd-date value="${esc(entry ? entry.date : today)}" max="${today}" aria-label="Entry date">
+        <textarea data-dd-text rows="5" maxlength="2000" placeholder="What happened today? (Ctrl or Cmd + Enter to save)" aria-label="Diary entry">${esc(entry ? entry.text : '')}</textarea>
+        ${picHtml(m)}
+        <div class="dd-actions"><p class="dd-msg" data-dd-msg role="alert"></p><button type="button" class="btn" data-dd-close>Cancel</button><button type="button" class="btn dd-save" data-dd-save>${entry ? 'Save changes' : 'Add entry'}</button></div>
+      </div></div>`;
+    paintPictures(diaryDialog);
+    if (!diaryDialog.open) diaryDialog.showModal();
+    diaryDialog.scrollTop = 0;
+    const ta = diaryDialog.querySelector('[data-dd-text]');
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+  }
+  function saveDiaryDialog() {
+    const m = state.memories.find(x => x.id === ddState.mid);
+    if (!m) { ddMsg('This memory no longer exists.'); return; }
+    const ta = diaryDialog.querySelector('[data-dd-text]'), dt = diaryDialog.querySelector('[data-dd-date]');
     const text = ta.value.trim();
-    if (!text) { ta.focus(); return; }
-    const dr = draftOf(id), im = draftImg(m);
-    if (dr.stage !== 'none' && dr.stage !== 'adult' && !dr.charId) { memMsg(m, `Pick which ${dr.stage} form first, or choose None.`); return; }
-    const entry = { id: newId(), date: ISO.test(dt.value) ? dt.value : todayStr(), text: text.slice(0, 2000) };
-    if (im) entry.img = im;
-    m.diary.push(entry);
-    delete state.memDraft[id];
-    state.memOpen.add(id);
+    if (!text) { ddMsg('Write something first.'); ta.focus(); return; }
+    const dr = draftOf(m.id);
+    if (dr.stage !== 'none' && dr.stage !== 'adult' && !dr.charId) { ddMsg(`Pick which ${dr.stage} form first, or choose None.`); return; }
+    const im = draftImg(m), date = ISO.test(dt.value) ? dt.value : todayStr();
+    if (ddState.eid) {
+      const e = m.diary.find(x => x.id === ddState.eid);
+      if (!e) { ddMsg('This entry no longer exists.'); return; }
+      e.date = date; e.text = text.slice(0, 2000);
+      if (im) e.img = im; else delete e.img;
+    } else {
+      const entry = { id: newId(), date, text: text.slice(0, 2000) };
+      if (im) entry.img = im;
+      m.diary.push(entry);
+    }
+    delete state.memDraft[m.id];
+    state.memOpen.add(m.id);
     saveMemories();
+    diaryDialog.close();
     render();
   }
+  diaryDialog.addEventListener('click', e => {
+    if (e.target.closest('[data-dd-close]')) { diaryDialog.close(); return; }
+    if (e.target.closest('[data-dd-save]')) return saveDiaryDialog();
+    const picStage = e.target.closest('[data-pic-stage]');
+    if (picStage) {
+      const d = draftOf(picStage.dataset.mid), k = picStage.dataset.picStage;
+      d.stage = k;
+      const st = PIC_STAGES.find(s => s.key === k);
+      const list = st && st.key !== 'adult' ? stageChars(st.stage) : [];
+      d.charId = list.length === 1 ? list[0].Id : null;   // a single choice (the baby) is picked for you
+      return refreshPicker(picStage.dataset.mid);
+    }
+    const picChar = e.target.closest('[data-pic-char]');
+    if (picChar) { draftOf(picChar.dataset.mid).charId = Number(picChar.dataset.picChar); return refreshPicker(picChar.dataset.mid); }
+    const picMood = e.target.closest('[data-pic-mood]');
+    if (picMood) {
+      const d = draftOf(picMood.dataset.mid);
+      d.mood = d.mood === picMood.dataset.picMood ? '' : picMood.dataset.picMood;
+      return refreshPicker(picMood.dataset.mid);
+    }
+  });
+  diaryDialog.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.matches('[data-dd-text]')) { e.preventDefault(); saveDiaryDialog(); }
+  });
+  diaryDialog.addEventListener('close', () => { if (ddState.mid) delete state.memDraft[ddState.mid]; });
 
   app.addEventListener('change', e => {
     const t = e.target;
@@ -2246,7 +2303,6 @@ function start(data, palettes, sprites) {
   app.addEventListener('keydown', e => {
     const t = e.target;
     if (t.dataset && t.dataset.memField === 'nickname' && e.key === 'Enter') { e.preventDefault(); t.blur(); }
-    if (t.dataset && t.dataset.diaryText && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addDiaryEntry(t.dataset.diaryText); }
   });
   app.addEventListener('toggle', e => {
     const d = e.target.closest && e.target.closest('[data-mem-details]');
