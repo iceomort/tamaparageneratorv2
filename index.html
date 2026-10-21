@@ -375,6 +375,11 @@ dialog#guide { background: var(--surface); }
 .diary-meta .mini-btn { margin: 0; }
 .diary-list p { margin: 4px 0 0; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 560px) { .mem-card { grid-template-columns: 1fr; } .mem-card canvas { width: 96px; } }
+/* cloud sync bar */
+.sync-bar { display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; font-size: 13px; color: var(--muted); }
+.sync-bar:empty { display: none; }
+.sync-bar .mini-btn { margin: 0; }
+.sync-err { color: #e5484d; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -441,6 +446,21 @@ const FAV_KEY = 'tamapara-favorites-v1';
 const PENCIL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
 const HOUSE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-5.5h4V20"/></svg>';
 const MEM_KEY = 'tamapara-memories-v1';
+const SYNC_KEY = 'tamapara-sync-v1';
+const FB_VER = '12.3.0';
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyChCgwx9A2CTvM3boYYqBMsg6A0hYgElJ0',
+  authDomain: 'tamapara-43866.firebaseapp.com',
+  projectId: 'tamapara-43866',
+  storageBucket: 'tamapara-43866.firebasestorage.app',
+  messagingSenderId: '174535751855',
+  appId: '1:174535751855:web:95dfa81e05a56d11537c5a',
+};
+const SYNC_SECTIONS = ['history', 'favorites', 'memories'];
+const sync = { ready: false, failed: false, user: null, status: '', auth: null, authM: null, fs: null, db: null, ref: null, unsub: null, timer: null, dirty: new Set(), pendingRender: false };
+const syncMeta = (() => { try { return JSON.parse(localStorage.getItem(SYNC_KEY)) || {}; } catch (e) { return {}; } })();
+syncMeta.ts = syncMeta.ts || {};
+const saveSyncMeta = () => { try { localStorage.setItem(SYNC_KEY, JSON.stringify(syncMeta)); } catch (e) { /* ignore */ } };
 const HEART_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -845,6 +865,7 @@ function start(data, palettes, sprites) {
       const rows = [...state.history.values()].slice(-HISTORY_STORED).map(h => [h.bodyId, h.eyesId, h.colorName]);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
     } catch (e) { /* storage unavailable; history stays in memory */ }
+    syncTouch('history');
   }
   function restoreHistory() {
     try {
@@ -864,6 +885,7 @@ function start(data, palettes, sprites) {
       const rows = [...state.favorites.values()].map(f => [f.bodyId, f.eyesId, f.colorName, f.nickname || '']);
       localStorage.setItem(FAV_KEY, JSON.stringify(rows));
     } catch (e) { /* storage unavailable; favorites stay in memory */ }
+    syncTouch('favorites');
   }
   function restoreFavorites() {
     try {
@@ -1053,6 +1075,7 @@ function start(data, palettes, sprites) {
       const rows = state.memories.map(m => ({ id: m.id, bodyId: m.bodyId, eyesId: m.eyesId, colorName: m.colorName, nickname: m.nickname || '', dob: m.dob, death: m.death || '', diary: m.diary }));
       localStorage.setItem(MEM_KEY, JSON.stringify(rows));
     } catch (e) { /* storage unavailable; memories stay in memory */ }
+    syncTouch('memories');
   }
   // Turn a stored or imported row into a memory, or null if it does not make sense
   function memoryFromRow(r) {
@@ -1201,6 +1224,181 @@ function start(data, palettes, sprites) {
       render();
     });
     inp.click();
+  }
+
+  // ── Cloud sync: Google sign-in + Firestore. One document per account, one JSON string per section ──
+  const SYNC_LS = { history: STORAGE_KEY, favorites: FAV_KEY, memories: MEM_KEY };
+  const syncRows = {
+    history: () => [...state.history.values()].slice(-HISTORY_STORED).map(h => [h.bodyId, h.eyesId, h.colorName]),
+    favorites: () => [...state.favorites.values()].map(f => [f.bodyId, f.eyesId, f.colorName, f.nickname || '']),
+    memories: () => state.memories.map(m => ({ id: m.id, bodyId: m.bodyId, eyesId: m.eyesId, colorName: m.colorName, nickname: m.nickname || '', dob: m.dob, death: m.death || '', diary: m.diary })),
+  };
+  function setSyncStatus(text) {
+    sync.status = text;
+    const el = app.querySelector('[data-sync-status]');
+    if (el) el.textContent = text;
+  }
+  function syncHtml() {
+    let inner = '';
+    if (sync.failed) inner = '<span class="sync-note">Sync unavailable (working offline)</span>';
+    else if (sync.ready && sync.user) inner = `<span class="sync-note">☁ <span data-sync-status>${esc(sync.status || 'Synced')}</span> &middot; ${esc(sync.user.email || '')}</span><button type="button" class="mini-btn" data-sync-signout>Sign out</button>`;
+    else if (sync.ready) inner = '<button type="button" class="mini-btn" data-sync-signin>☁ Sign in with Google to sync across devices</button>';
+    return `<div class="sync-bar">${inner}</div>`;
+  }
+  function refreshSyncUi() {
+    const el = app.querySelector('.sync-bar');
+    if (el) el.outerHTML = syncHtml();
+  }
+  function syncTouch(section) {
+    syncMeta.ts[section] = Date.now();
+    saveSyncMeta();
+    if (!sync.user) return;
+    sync.dirty.add(section);
+    clearTimeout(sync.timer);
+    sync.timer = setTimeout(syncPush, 800);
+    setSyncStatus('Syncing…');
+  }
+  async function syncPush() {
+    if (!sync.user || !sync.fs || !sync.dirty.size) return;
+    const sections = [...sync.dirty];
+    sync.dirty.clear();
+    const payload = {};
+    for (const s of sections) payload[s] = { json: JSON.stringify(syncRows[s]()), ts: syncMeta.ts[s] || Date.now() };
+    try {
+      await sync.fs.setDoc(sync.ref, payload, { merge: true });
+      if (!sync.dirty.size) setSyncStatus('Synced');
+    } catch (e) {
+      console.error('Sync push failed', e);
+      sections.forEach(s => sync.dirty.add(s));
+      setSyncStatus('Sync failed, retrying');
+      clearTimeout(sync.timer);
+      sync.timer = setTimeout(syncPush, 15000);
+    }
+  }
+  // Replace a section with the given rows and mirror it into localStorage
+  function applySection(section, rows) {
+    if (section === 'history') {
+      state.history.clear();
+      for (const [bodyId, eyesId, colorName] of rows) {
+        const body = byId.get(bodyId), eyes = byId.get(eyesId), color = pals.find(p => p.Name === colorName);
+        if (!body || !eyes || !color) continue;
+        state.history.set(keyOf(body, eyes, color), { bodyId, eyesId, colorName, canvas: generate(body, eyes, color) });
+      }
+      [...state.selected].forEach(k => { if (!state.history.has(k)) state.selected.delete(k); });
+    } else if (section === 'favorites') {
+      state.favorites.clear();
+      for (const [bodyId, eyesId, colorName, nickname] of rows) {
+        const body = byId.get(bodyId), eyes = byId.get(eyesId), color = pals.find(p => p.Name === colorName);
+        if (!body || !eyes || !color) continue;
+        state.favorites.set(keyOf(body, eyes, color), { bodyId, eyesId, colorName, nickname: nickname || '', canvas: generate(body, eyes, color) });
+      }
+      if (state.renaming && !state.favorites.has(state.renaming)) state.renaming = null;
+    } else {
+      state.memories = rows.map(memoryFromRow).filter(Boolean);
+      [...state.memOpen].forEach(id => { if (!state.memories.some(m => m.id === id)) state.memOpen.delete(id); });
+    }
+    try { localStorage.setItem(SYNC_LS[section], JSON.stringify(syncRows[section]())); } catch (e) { /* ignore */ }
+  }
+  // First time a device meets an account: combine both sides, never overwrite either
+  function unionRows(section, local, remote) {
+    if (section === 'memories') {
+      const map = new Map(remote.map(r => [r.id, r]));
+      for (const l of local) {
+        const r = map.get(l.id);
+        if (!r) { map.set(l.id, l); continue; }
+        const have = new Set((r.diary || []).map(d => d.id));
+        r.diary = [...(r.diary || []), ...(l.diary || []).filter(d => !have.has(d.id))];
+      }
+      return [...map.values()];
+    }
+    const k = r => r.slice(0, 3).join('_');
+    const map = new Map(remote.map(r => [k(r), r]));
+    for (const l of local) {
+      const r = map.get(k(l));
+      if (!r) map.set(k(l), l);
+      else if (section === 'favorites' && !r[3] && l[3]) r[3] = l[3];
+    }
+    const out = [...map.values()];
+    return section === 'history' ? out.slice(-HISTORY_STORED) : out;
+  }
+  function renderSoon() {
+    const a = document.activeElement;
+    if (a && app.contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName)) { sync.pendingRender = true; return; }
+    render();
+  }
+  function onRemote(snap) {
+    if (snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;   // wait for the server, ignore our own echo
+    const data = snap.exists() ? snap.data() : {};
+    const remote = {};
+    for (const s of SYNC_SECTIONS) {
+      try { remote[s] = data[s] && typeof data[s].json === 'string' ? { rows: JSON.parse(data[s].json), ts: data[s].ts || 0 } : null; } catch (e) { remote[s] = null; }
+    }
+    let changed = false;
+    if (syncMeta.uid !== sync.user.uid) {
+      for (const s of SYNC_SECTIONS) {
+        const rows = remote[s] ? unionRows(s, syncRows[s](), remote[s].rows) : syncRows[s]();
+        applySection(s, rows);
+        syncMeta.ts[s] = Date.now();
+        sync.dirty.add(s);
+      }
+      syncMeta.uid = sync.user.uid;
+      changed = true;
+    } else {
+      for (const s of SYNC_SECTIONS) {
+        const r = remote[s], mine = syncMeta.ts[s] || 0;
+        if (r && r.ts > mine) { applySection(s, r.rows); syncMeta.ts[s] = r.ts; changed = true; }
+        else if (!r || mine > r.ts) sync.dirty.add(s);
+      }
+    }
+    saveSyncMeta();
+    if (sync.dirty.size) { clearTimeout(sync.timer); sync.timer = setTimeout(syncPush, 300); setSyncStatus('Syncing…'); }
+    else setSyncStatus('Synced');
+    if (changed) renderSoon();
+  }
+  async function initSync() {
+    try {
+      const base = `https://www.gstatic.com/firebasejs/${FB_VER}/`;
+      const [appM, authM, fsM] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
+      const fbApp = appM.initializeApp(FIREBASE_CONFIG);
+      sync.authM = authM; sync.fs = fsM;
+      sync.auth = authM.getAuth(fbApp);
+      sync.db = fsM.initializeFirestore(fbApp, { experimentalAutoDetectLongPolling: true });
+      sync.ready = true;
+      authM.getRedirectResult(sync.auth).catch(() => {});
+      authM.onAuthStateChanged(sync.auth, user => {
+        sync.user = user;
+        if (sync.unsub) { sync.unsub(); sync.unsub = null; }
+        if (user) {
+          sync.ref = fsM.doc(sync.db, 'users', user.uid);
+          sync.status = 'Syncing…';
+          sync.unsub = fsM.onSnapshot(sync.ref, onRemote, err => {
+            console.error('Sync listener error', err);
+            setSyncStatus('Sync blocked. Check Firestore rules');
+          });
+        }
+        refreshSyncUi();
+      });
+      refreshSyncUi();
+    } catch (e) {
+      console.error('Sync could not start', e);
+      sync.failed = true;
+      refreshSyncUi();
+    }
+  }
+  async function syncSignIn() {
+    const { GoogleAuthProvider, signInWithPopup, signInWithRedirect } = sync.authM;
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(sync.auth, provider);
+    } catch (e) {
+      if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') return signInWithRedirect(sync.auth, provider);
+      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return;
+      const bar = app.querySelector('.sync-bar');
+      if (bar) bar.insertAdjacentHTML('beforeend', `<span class="sync-note sync-err">Sign-in failed (${esc(e.code || 'error')})</span>`);
+    }
+  }
+  async function syncSignOut() {
+    try { await sync.authM.signOut(sync.auth); } catch (e) { /* ignore */ }
   }
 
   function favoritesHtml() {
@@ -1584,6 +1782,7 @@ function start(data, palettes, sprites) {
         <div class="credit">created by <a href="https://github.com/scalynko/tamaparagenerator" target="_blank" rel="noopener">Scalynko</a>
           &nbsp;/&nbsp; modified by <a href="https://github.com/iceomort/tamaparageneratorv2" target="_blank" rel="noopener"><em>Iceomort</em></a> (${APP_UPDATED})
           &nbsp;/&nbsp; ${APP_VERSION}</div>
+        ${syncHtml()}
       </header>
 
       <div class="layout">
@@ -1681,6 +1880,8 @@ function start(data, palettes, sprites) {
     if (fOpen) { const k = fOpen.dataset.fopen; state.filtersOpen[k] = !state.filtersOpen[k]; return render(); }
     const editEl = e.target.closest('[data-edit]');
     if (editEl) return editEntry(editEl.dataset.edit);
+    if (e.target.closest('[data-sync-signin]')) return syncSignIn();
+    if (e.target.closest('[data-sync-signout]')) return syncSignOut();
     const houseEl = e.target.closest('[data-memory-add]');
     if (houseEl) { addMemory(houseEl.dataset.memoryAdd); render(); return scrollToTabs(); }
     if (e.target.closest('[data-mem-export]')) return exportMemories();
@@ -1850,8 +2051,13 @@ function start(data, palettes, sprites) {
   }, true);
   // Keep ages moving while the page stays open (they tick over at local midnight)
   setInterval(() => state.memories.forEach(refreshMem), 60000);
+  app.addEventListener('focusout', () => {
+    if (!sync.pendingRender) return;
+    setTimeout(() => { if (sync.pendingRender) { sync.pendingRender = false; renderSoon(); } }, 600);
+  });
 
   render();
+  initSync();
   window.__tama = { parseFavoriteText, openPaste, render, editEntry, toggleFavorite, guideFor, openGuide, generate, state, pals, chars, sprites, palettes }; // handy for debugging in the console
 }
 
