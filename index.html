@@ -438,6 +438,110 @@ dialog#diary-dialog::backdrop { background: rgba(0, 0, 0, .55); }
 .tag-input { width: 130px; padding: 3px 10px; font: inherit; font-size: 13px; border: 1px dashed var(--border); border-radius: 999px; background: transparent; color: var(--text); }
 .tag-input:focus { border-style: solid; border-color: var(--accent); outline: none; }
 @media (prefers-color-scheme: dark) { .mem-tag { background: hsl(var(--h) 45% 26%); color: hsl(var(--h) 85% 88%); } }
+/* v4.8: clean memory cards, edit mode, report card view */
+.section-tabs { position: relative; }
+.section-tabs .menu-btn { margin-left: auto; align-self: center; width: 36px; height: 36px; padding: 0; flex: none; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); font-size: 18px; line-height: 1; color: var(--text); }
+.section-tabs .menu-btn:hover { border-color: var(--accent); }
+.mem-menu { position: absolute; right: 0; top: 100%; z-index: 5; display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 6px; min-width: 200px; }
+.mem-menu.open { display: block; }
+.section-tabs .mem-menu button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 9px 12px; border-radius: 9px; font: inherit; font-size: 15px; font-weight: 500; color: var(--text); cursor: pointer; }
+.section-tabs .mem-menu button:hover { background: var(--accent-soft); }
+.section-tabs .mem-menu button:disabled { opacity: .4; cursor: default; }
+@media (max-width: 560px) { .section-tabs { flex-wrap: nowrap; gap: 8px; } .section-tabs button[data-view] { font-size: clamp(.85rem, 3.8vw, 1.2rem); white-space: nowrap; } }
+
+.mem-list { grid-template-columns: minmax(0, 1fr); }
+.mem-card.mc { display: block; position: relative; min-width: 0; padding: 16px; border-radius: 22px; }
+.mc-head { display: flex; gap: 14px; align-items: center; }
+.mem-card .portrait { flex: none; width: 112px; height: 112px; border-radius: 20px; background: radial-gradient(circle at 50% 30%, var(--accent-soft), transparent 72%), var(--bg-2); display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; overflow: hidden; }
+.mem-card .portrait canvas { max-width: none; image-rendering: pixelated; }
+.mem-card.mc.passed canvas { filter: none; opacity: 1; }
+.mem-card.mc.passed .portrait canvas { filter: grayscale(1); opacity: .75; }
+.mem-card .who { min-width: 0; flex: 1; }
+.mem-card .name-text { margin: 0; font-size: 1.3rem; line-height: 1.2; overflow-wrap: anywhere; padding-right: 82px; }
+.mem-card.editing .name-text { display: none; }
+.mem-card.editing .who { padding-top: 4px; }
+.mem-card .mem-sub { margin: 2px 0 8px; }
+.mc-actions { position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; }
+.icon-btn { width: 34px; height: 34px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-2); font-size: 16px; line-height: 1; cursor: pointer; color: var(--text); }
+.icon-btn:hover, .icon-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.mc-stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; }
+.stat { display: inline-flex; gap: 6px; align-items: baseline; padding: 6px 12px; border-radius: 12px; background: var(--bg-2); font-size: 14px; }
+.stat small { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.stat b { font-weight: 800; }
+.diary-h { margin: 16px 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+.diary-list li { border-radius: 16px; padding: 10px 14px; }
+.diary-list li.diary-entry { align-items: center; }
+.diary-list p { font-size: 15px; line-height: 1.4; }
+.edit-panel { margin-top: 14px; padding: 12px; border: 1px dashed var(--border); border-radius: 16px; display: grid; gap: 10px; }
+.edit-panel { min-width: 0; }
+.edit-panel .ep-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.edit-panel .mem-name { flex: 1 1 140px; min-width: 0; width: auto; font-weight: 700; font-size: 15px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); }
+.edit-panel .mini-btn { margin: 0; flex: none; }
+.edit-panel .mem-fields { margin: 0; }
+.new-entry { margin-top: 6px; border: 1px dashed var(--accent); background: transparent; color: var(--accent-text); border-radius: 12px; padding: 8px 16px; font: inherit; font-weight: 700; cursor: pointer; }
+.new-entry:hover { background: var(--accent-soft); }
+.mem-tag { transform: rotate(var(--r, 0deg)); box-shadow: 0 1px 0 rgba(0,0,0,.08); }
+.mem-tag button { display: none; }
+.mem-card.editing .mem-tag button { display: inline; }
+
+/* report card view (full screen, made for screenshots) */
+dialog#rc-dialog { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; overflow: hidden; color: inherit; }
+dialog#rc-dialog::backdrop { background: #000; }
+.rc-overlay { position: absolute; inset: 0; }
+.rc-scroll { position: absolute; inset: 0; overflow-y: auto; padding: 28px 16px 90px; }
+.rc-ui { position: absolute; left: 0; right: 0; z-index: 30; display: flex; justify-content: center; gap: 8px; transition: opacity .2s; }
+.rc-ui.top { top: 12px; justify-content: flex-end; padding: 0 14px; }
+.rc-ui.bottom { bottom: 16px; }
+.rc-ui.gone { opacity: 0; pointer-events: none; }
+.rc-ui button { border: 0; border-radius: 999px; padding: 8px 16px; font: inherit; font-weight: 700; font-size: 14px; background: rgba(255,255,255,.88); color: #2b2d3a; box-shadow: 0 2px 10px rgba(0,0,0,.18); cursor: pointer; }
+.rc-ui button[aria-pressed="true"] { background: #2b2d3a; color: #fff; }
+.rc-hint { text-align: center; font-size: 12px; margin-top: 14px; opacity: .7; }
+.rc { width: min(430px, 100%); margin: 0 auto; border-radius: 28px; padding: 22px 20px 18px; position: relative; text-align: center; }
+.rc-ribbon { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .22em; padding: 5px 16px; border-radius: 999px; margin-bottom: 14px; }
+.rc-portrait { margin: 0 auto 10px; width: 210px; height: 210px; border-radius: 50%; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 22px; }
+.rc-portrait canvas, .rc-entry canvas { image-rendering: pixelated; }
+.rc.passed .rc-portrait canvas { filter: grayscale(1); opacity: .8; }
+.rc h2 { margin: 0; font-size: 1.7rem; line-height: 1.15; overflow-wrap: anywhere; }
+.rc-species { margin: 4px 0 12px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+.rc-tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 16px; }
+.rc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.rc-stat { border-radius: 16px; padding: 10px 6px; }
+.rc-stat small { display: block; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; opacity: .7; margin-bottom: 2px; }
+.rc-stat b { font-size: 15px; line-height: 1.2; display: block; }
+.rc-diary { text-align: left; }
+.rc-diary h4 { margin: 0 0 8px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; opacity: .7; text-align: center; }
+.rc-entry { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 18px; margin-bottom: 8px; }
+.rc-entry .meta { font-size: 11px; opacity: .7; }
+.rc-entry p { margin: 3px 0 0; font-size: 14.5px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rc-entry canvas { flex: none; }
+.rc-more { text-align: center; font-size: 12px; opacity: .65; margin: 2px 0 0; }
+.rc-foot { margin-top: 14px; font-size: 11px; opacity: .55; letter-spacing: .04em; }
+.rc-gone { margin: -4px 0 12px; font-size: 13px; font-weight: 700; }
+.rc .mem-tag { background: hsl(var(--h) 85% 86%); color: hsl(var(--h) 60% 24%); padding: 2px 11px; }
+
+.rc-overlay[data-rc="pastel"] { background: linear-gradient(160deg, #ffd9ec, #dcd6ff 55%, #cdeeff); color: #3a3350; }
+.rc-overlay[data-rc="pastel"] .rc { background: rgba(255,255,255,.78); box-shadow: 0 18px 50px rgba(120,90,180,.25); backdrop-filter: blur(6px); }
+.rc-overlay[data-rc="pastel"] .rc-ribbon { background: #ff8fc3; color: #fff; }
+.rc-overlay[data-rc="pastel"] .rc-portrait { background: radial-gradient(circle at 50% 35%, #fff, #f3d9ff 62%, #e6d4ff); box-shadow: inset 0 0 0 6px rgba(255,255,255,.7); }
+.rc-overlay[data-rc="pastel"] .rc-stat, .rc-overlay[data-rc="pastel"] .rc-entry { background: rgba(255,255,255,.8); }
+
+.rc-overlay[data-rc="night"] { background: radial-gradient(circle at 30% 0%, #2c2b66, #0b0d1c 70%); color: #eef0ff; }
+.rc-overlay[data-rc="night"] .rc { background: rgba(18,20,44,.82); border: 1px solid rgba(160,170,255,.28); box-shadow: 0 0 44px rgba(110,120,255,.3); }
+.rc-overlay[data-rc="night"] .rc-ribbon { background: linear-gradient(90deg, #7c83ff, #c46bff); color: #fff; }
+.rc-overlay[data-rc="night"] .rc-portrait { background: radial-gradient(circle at 50% 35%, rgba(130,140,255,.45), rgba(40,44,110,.4) 65%); box-shadow: 0 0 0 2px rgba(160,170,255,.35), 0 0 30px rgba(120,130,255,.4); }
+.rc-overlay[data-rc="night"] .rc-stat, .rc-overlay[data-rc="night"] .rc-entry { background: rgba(255,255,255,.07); }
+.rc-overlay[data-rc="night"] .rc .mem-tag { background: hsl(var(--h) 70% 30%); color: hsl(var(--h) 100% 90%); box-shadow: 0 0 12px hsl(var(--h) 80% 50% / .35); }
+
+.rc-overlay[data-rc="paper"] { background: #e8dec8; color: #3b3126; }
+.rc-overlay[data-rc="paper"] .rc { background: #fffaf0 repeating-linear-gradient(transparent 0 31px, rgba(110,150,200,.22) 31px 32px); border-radius: 10px; box-shadow: 0 10px 30px rgba(80,60,30,.25); font-family: Georgia, "Times New Roman", serif; }
+.rc-overlay[data-rc="paper"] .rc::before { content: ""; position: absolute; left: 34px; top: 0; bottom: 0; width: 2px; background: rgba(220,90,90,.35); }
+.rc-overlay[data-rc="paper"] .rc-ribbon { background: none; color: #b3392f; border: 2px solid #b3392f; border-radius: 6px; transform: rotate(-3deg); letter-spacing: .3em; }
+.rc-overlay[data-rc="paper"] .rc-portrait { background: #fff; border-radius: 14px; width: 190px; height: 190px; border: 3px solid #3b3126; box-shadow: 4px 4px 0 rgba(0,0,0,.18); transform: rotate(-2deg); }
+.rc-overlay[data-rc="paper"] .rc-stat, .rc-overlay[data-rc="paper"] .rc-entry { background: rgba(255,255,255,.85); border: 1px dashed rgba(59,49,38,.4); border-radius: 8px; }
+.rc-overlay[data-rc="paper"] .rc .mem-tag { background: hsl(var(--h) 80% 82%); color: hsl(var(--h) 60% 22%); border-radius: 6px; }
+/* uploaded diary photos */
+.pic-photo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.diary-pic canvas.photo, .rc-entry canvas.photo, .pic-preview canvas.photo { image-rendering: auto; border-radius: 12px; }
 </style>
 </head>
 <body>
@@ -445,6 +549,7 @@ dialog#diary-dialog::backdrop { background: rgba(0, 0, 0, .55); }
 <dialog id="guide" aria-labelledby="guide-title"></dialog>
 <dialog id="paste" aria-labelledby="paste-title"></dialog>
 <dialog id="diary-dialog" aria-labelledby="dd-title"></dialog>
+<dialog id="rc-dialog" aria-label="Report card"></dialog>
 
 <script>
 'use strict';
@@ -498,7 +603,7 @@ const getCharType = c => CHAR_TYPES[c.Name.toUpperCase()] || 'other';
 
 const HISTORY_SHOWN = 18;
 const HISTORY_STORED = 100;
-const APP_VERSION = 'v4.7';          // bump when you ship a change
+const APP_VERSION = 'v4.8';          // bump when you ship a change
 const APP_UPDATED = '21 Oct 2026';    // and update the date here
 const STORAGE_KEY = 'tamapara-history-v1';
 const FAV_KEY = 'tamapara-favorites-v1';
@@ -793,6 +898,7 @@ function start(data, palettes, sprites) {
     memories: [],              // { id, bodyId, eyesId, colorName, nickname, dob, death, diary: [{id,date,text}], canvas }
     memOpen: new Set(),        // ids of memories whose diary is expanded
     memFlash: '',              // short confirmation shown in the Memories tab
+    memEdit: new Set(),        // memories currently showing their edit controls
     memDraft: {},              // diary picture being chosen per memory: { stage, charId, mood }
     filtersOpen: { body: false, eyes: false },   // whether each section's Filters panel is showing
     headerTamas: (() => {
@@ -1174,7 +1280,9 @@ function start(data, palettes, sprites) {
     const e = state.history.get(key) || state.favorites.get(key);
     if (!e) return;
     const fav = state.favorites.get(key);
-    state.memories.unshift({ id: newId(), bodyId: e.bodyId, eyesId: e.eyesId, colorName: e.colorName, nickname: fav ? fav.nickname || '' : '', dob: todayStr(), death: '', diary: [], tags: [], canvas: e.canvas });
+    const nid = newId();
+    state.memEdit.add(nid);
+    state.memories.unshift({ id: nid, bodyId: e.bodyId, eyesId: e.eyesId, colorName: e.colorName, nickname: fav ? fav.nickname || '' : '', dob: todayStr(), death: '', diary: [], tags: [], canvas: e.canvas });
     saveMemories();
     state.view = 'memories';
     state.renaming = null;
@@ -1236,17 +1344,139 @@ function start(data, palettes, sprites) {
     out.getContext('2d').drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
     return out;
   }
+  const PHOTO_PREFIX = 'tamapara-photo-';
+  const PHOTO_ID = /^p[a-z0-9]{4,40}$/;
   function cleanImg(im) {
     if (!im || typeof im !== 'object') return null;
+    const mood = EMOTES[im.mood] ? im.mood : '';
+    if (im.stage === 'custom') return PHOTO_ID.test(String(im.photo)) ? { stage: 'custom', photo: String(im.photo), charId: null, mood } : null;
     const st = PIC_STAGES.find(s => s.key === im.stage);
     if (!st) return null;
-    const mood = EMOTES[im.mood] ? im.mood : '';
     if (st.key === 'adult') return { stage: 'adult', charId: null, mood };
     const c = byId.get(Number(im.charId));
     return c && c.Stage === st.stage ? { stage: st.key, charId: c.Id, mood } : null;
   }
-  // The picture itself: the stage sprite, cropped, with the mood icon at its top right
+
+  // ── Uploaded photos: shrunk, kept on this device, and copied to your account when signed in ──
+  const photoCache = new Map(), photoLoading = new Set();
+  const newPhotoId = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const photoData = id => { try { return localStorage.getItem(PHOTO_PREFIX + id); } catch (e) { return null; } };
+  function referencedPhotos(includeDrafts) {
+    const ids = new Set();
+    for (const m of state.memories) for (const d of m.diary) if (d.img && d.img.photo) ids.add(d.img.photo);
+    if (includeDrafts) for (const d of Object.values(state.memDraft)) if (d.stage === 'custom' && d.photo) ids.add(d.photo);
+    return ids;
+  }
+  // Forget local photos that no diary entry (or open draft) uses any more
+  function gcPhotos() {
+    try {
+      const keep = referencedPhotos(true);
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(PHOTO_PREFIX) && !keep.has(k.slice(PHOTO_PREFIX.length))) { localStorage.removeItem(k); photoCache.delete(k.slice(PHOTO_PREFIX.length)); }
+      }
+    } catch (e) { /* ignore */ }
+  }
+  function decodePhoto(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => { const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img, 0, 0); resolve(c); };
+      img.onerror = () => reject(new Error('decode failed'));
+      img.src = dataUrl;
+    });
+  }
+  // Reads an image file, shrinks it to fit 240px and returns a small data URL
+  async function shrinkPhoto(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((resolve, reject) => { const im = new Image(); im.onload = () => resolve(im); im.onerror = () => reject(new Error('unreadable')); im.src = url; });
+      const k = Math.min(1, 240 / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      let out = c.toDataURL('image/webp', 0.8);
+      if (!out.startsWith('data:image/webp')) {                       // browsers that cannot make WebP: use JPEG on white
+        const j = document.createElement('canvas'); j.width = c.width; j.height = c.height;
+        const jc = j.getContext('2d'); jc.fillStyle = '#fff'; jc.fillRect(0, 0, j.width, j.height); jc.drawImage(c, 0, 0);
+        out = j.toDataURL('image/jpeg', 0.82);
+      }
+      return { dataUrl: out, canvas: c };
+    } finally { URL.revokeObjectURL(url); }
+  }
+  function placeholderPhoto() {
+    const c = document.createElement('canvas'); c.width = 72; c.height = 72;
+    const x = c.getContext('2d'); x.fillStyle = '#c9c9d8'; x.fillRect(0, 0, 72, 72); x.fillStyle = '#fff'; x.font = '28px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('📷', 36, 38);
+    return c;
+  }
+  function getPhoto(id) {
+    if (photoCache.has(id)) return photoCache.get(id);
+    loadPhoto(id);
+    return null;
+  }
+  async function loadPhoto(id) {
+    if (photoLoading.has(id)) return;
+    photoLoading.add(id);
+    try {
+      let data = photoData(id);
+      if (!data && sync.user && sync.fs) {
+        const snap = await sync.fs.getDoc(sync.fs.doc(sync.db, 'users', sync.user.uid, 'photos', id));
+        if (snap.exists() && typeof snap.data().data === 'string') { data = snap.data().data; try { localStorage.setItem(PHOTO_PREFIX + id, data); } catch (e) { /* storage full */ } }
+      }
+      if (data) { photoCache.set(id, await decodePhoto(data)); repaintPhotos(); }
+    } catch (e) { console.error('Photo load failed', e); }
+    finally { photoLoading.delete(id); }
+  }
+  const loadMissingPhotos = () => { for (const id of referencedPhotos(false)) if (!photoCache.has(id)) loadPhoto(id); };
+  async function uploadPhotos() {
+    if (!sync.user || !sync.fs) return;
+    syncMeta.photos = syncMeta.photos || {};
+    for (const id of referencedPhotos(false)) {
+      if (syncMeta.photos[id]) continue;
+      const data = photoData(id);
+      if (!data) continue;
+      try {
+        await sync.fs.setDoc(sync.fs.doc(sync.db, 'users', sync.user.uid, 'photos', id), { data });
+        syncMeta.photos[id] = 1; saveSyncMeta(); sync.photoWarn = false;
+      } catch (e) {
+        console.error('Photo upload failed', e);
+        sync.photoWarn = true;
+        setSyncStatus('Photos stay on this device. Update your Firestore rules to sync them');
+        return;
+      }
+    }
+  }
+  function repaintPhotos() {
+    paintPictures(app);
+    if (diaryDialog.open) paintPictures(diaryDialog);
+    if (rcDialog.open) paintReportImages();
+  }
+  // Show a diary picture: stage sprites stay crisp and pixelated, photos are fitted into a small rounded box
+  function showEntryImage(cv, c, im, scale) {
+    if (im.stage === 'custom') {
+      const k = 92 / Math.max(c.width, c.height);
+      drawInto(cv, c);
+      cv.classList.add('photo');
+      cv.style.width = Math.round(c.width * k) + 'px';
+      cv.style.height = Math.round(c.height * k) + 'px';
+    } else { cv.classList.remove('photo'); showScaled(cv, c, scale); }
+  }
+  // The picture itself: the stage sprite (cropped) or your photo, with the mood icon at its top right
   function diaryImageCanvas(m, im) {
+    if (im.stage === 'custom') {
+      const base = getPhoto(im.photo) || placeholderPhoto();
+      const out = document.createElement('canvas');
+      out.width = base.width; out.height = base.height;
+      const ctx = out.getContext('2d');
+      ctx.drawImage(base, 0, 0);
+      if (im.mood) {
+        const tmp = document.createElement('canvas'); tmp.width = 11; tmp.height = 11;
+        drawEmote(tmp.getContext('2d'), im.mood, 0, 0);
+        const kk = Math.max(1, Math.round(base.width * 0.26 / 11)), size = 11 * kk;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(tmp, base.width - size - 4, 4, size, size);
+      }
+      return out;
+    }
     let srcCanvas;
     if (im.stage === 'adult') srcCanvas = m.canvas;
     else { const c = byId.get(im.charId); if (!c) return null; srcCanvas = thumb(c); }
@@ -1261,10 +1491,11 @@ function start(data, palettes, sprites) {
     return out;
   }
   const stageChars = n => data.Characters.filter(c => c.Stage === n).sort((a, b) => a.Name.localeCompare(b.Name));
-  const draftOf = id => state.memDraft[id] || (state.memDraft[id] = { stage: 'none', charId: null, mood: '' });
+  const draftOf = id => state.memDraft[id] || (state.memDraft[id] = { stage: 'none', charId: null, photo: null, mood: '' });
   // The image the current draft would save, or null if it is not complete yet
   function draftImg(m) {
     const d = draftOf(m.id);
+    if (d.stage === 'custom') return d.photo ? cleanImg({ stage: 'custom', photo: d.photo, mood: d.mood }) : null;
     if (d.stage === 'none' && !d.mood) return null;
     return cleanImg({ stage: d.stage === 'none' ? 'adult' : d.stage, charId: d.charId, mood: d.mood });
   }
@@ -1276,9 +1507,11 @@ function start(data, palettes, sprites) {
   function picHtml(m) {
     const d = draftOf(m.id), mid = esc(m.id);
     const stageBtns = [['none', 'None'], ...PIC_STAGES.map(s => [s.key, s.label])]
-      .map(([k, l]) => `<button type="button" class="pic-chip" data-pic-stage="${k}" data-mid="${mid}" aria-pressed="${d.stage === k}">${l}</button>`).join('');
+      .map(([k, l]) => `<button type="button" class="pic-chip" data-pic-stage="${k}" data-mid="${mid}" aria-pressed="${d.stage === k}">${l}</button>`).join('')
+      + `<button type="button" class="pic-chip" data-pic-photo="${mid}" aria-pressed="${d.stage === 'custom'}">📷 Photo</button>`;
     let chars = '';
-    if (d.stage === 'adult') chars = '<p class="pic-note">Uses this mon\'s own look.</p>';
+    if (d.stage === 'custom') chars = `<div class="pic-photo-actions"><button type="button" class="pic-chip" data-pic-photo-new="${mid}">Replace photo</button><button type="button" class="pic-chip" data-pic-photo-remove="${mid}">Remove</button><span class="pic-note">Your photo is shrunk to fit and saved with the diary.</span></div>`;
+    else if (d.stage === 'adult') chars = '<p class="pic-note">Uses this mon\'s own look.</p>';
     else if (d.stage !== 'none') {
       const s = PIC_STAGES.find(x => x.key === d.stage);
       chars = `<div class="pic-chars">${stageChars(s.stage).map(c => `<button type="button" class="pic-char" data-pic-char="${c.Id}" data-mid="${mid}" aria-pressed="${d.charId === c.Id}" title="${esc(nice(c.Name))}"><canvas data-pic-thumb="${c.Id}" aria-hidden="true"></canvas><span>${esc(nice(c.Name))}</span></button>`).join('')}</div>`;
@@ -1299,12 +1532,12 @@ function start(data, palettes, sprites) {
     root.querySelectorAll('canvas[data-pic-preview]').forEach(cv => {
       const box = cv.closest('[data-pic]'), m = box && state.memories.find(x => x.id === box.dataset.pic);
       const im = m && draftImg(m), c = im && diaryImageCanvas(m, im);
-      if (c) showScaled(cv, c, 2);
+      if (c) showEntryImage(cv, c, im, 2);
     });
     root.querySelectorAll('canvas[data-diary-canvas]').forEach(cv => {
       const m = state.memories.find(x => x.id === cv.dataset.mid), d = m && m.diary.find(x => x.id === cv.dataset.eid);
       const c = d && d.img && diaryImageCanvas(m, d.img);
-      if (c) showScaled(cv, c, 2);
+      if (c) showEntryImage(cv, c, d.img, 1.5);
     });
   }
   function refreshPicker(id) {
@@ -1315,7 +1548,7 @@ function start(data, palettes, sprites) {
   }
   function picCaption(im) {
     const st = PIC_STAGES.find(s => s.key === im.stage);
-    return [st ? st.label : '', im.mood ? EMOTES[im.mood].label : ''].filter(Boolean).join(' · ');
+    return [im.stage === 'custom' ? 'Photo' : st ? st.label : '', im.mood ? EMOTES[im.mood].label : ''].filter(Boolean).join(' · ');
   }
 
   // ── Tags: your own funny labels on each memory ──────────────────────────────
@@ -1330,7 +1563,7 @@ function start(data, palettes, sprites) {
   }
   // The same word always gets the same colour, on every device
   const tagHue = t => { let h = 7; for (const ch of t.toLowerCase()) h = (Math.imul(h, 31) + ch.codePointAt(0)) >>> 0; return (h % 12) * 30 + 8; };   // 12 evenly spaced hues
-  const tagsHtml = m => (m.tags || []).map(t => `<span class="mem-tag" style="--h:${tagHue(t)}">${esc(t)}<button type="button" data-tag-del="${esc(m.id)}" data-tag="${esc(t)}" aria-label="Remove tag ${esc(t)}">×</button></span>`).join('');
+  const tagsHtml = m => (m.tags || []).map(t => `<span class="mem-tag" style="--h:${tagHue(t)};--r:${((tagHue(t) % 5) - 2) * 1.4}deg">${esc(t)}<button type="button" data-tag-del="${esc(m.id)}" data-tag="${esc(t)}" aria-label="Remove tag ${esc(t)}">×</button></span>`).join('');
   function redrawTags(m) {
     const el = app.querySelector(`[data-tags="${m.id}"] .tags-list`);
     if (el) el.innerHTML = tagsHtml(m);
@@ -1347,48 +1580,70 @@ function start(data, palettes, sprites) {
     redrawTags(m);
   }
 
-  function diaryItemsHtml(m) {
-    return [...m.diary].map((d, i) => [d, i]).sort((a, b) => b[0].date.localeCompare(a[0].date) || b[1] - a[1]).map(([d]) => `
+  const prettyDate = s => new Date(s + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const statusText = m => m.death ? `🕊️ Passed ${prettyDate(m.death)}` : '💚 Alive';
+  function speciesLine(m) {
+    const b = byId.get(m.bodyId), e = byId.get(m.eyesId), parts = [b.Name];
+    if (e.Id !== b.Id) parts.push(`${e.Name} eyes`);
+    if (m.colorName !== 'Original') parts.push(m.colorName);
+    return parts.join(' · ');
+  }
+  const sortedDiary = m => [...m.diary].map((d, i) => [d, i]).sort((a, b) => b[0].date.localeCompare(a[0].date) || b[1] - a[1]).map(x => x[0]);
+  function diaryItemsHtml(m, ed) {
+    return sortedDiary(m).map(d => `
       <li class="diary-entry">
         <div class="diary-main">
-          <div class="diary-meta"><span>${esc(d.date)} &middot; <span data-diary-age="${esc(d.id)}" data-date="${esc(d.date)}">${esc(ageText(ageOn(m, d.date)))}</span></span><span class="diary-actions"><button type="button" class="mini-btn" data-diary-edit="${esc(m.id)}" data-eid="${esc(d.id)}">Edit</button><button type="button" class="mini-btn" data-diary-del="${esc(m.id)}" data-eid="${esc(d.id)}">Delete</button></span></div>
+          <div class="diary-meta"><span>${esc(prettyDate(d.date))} &middot; <span data-diary-age="${esc(d.id)}" data-date="${esc(d.date)}">${esc(ageText(ageOn(m, d.date)))}</span></span>${ed ? `<span class="diary-actions"><button type="button" class="mini-btn" data-diary-edit="${esc(m.id)}" data-eid="${esc(d.id)}">Edit</button><button type="button" class="mini-btn" data-diary-del="${esc(m.id)}" data-eid="${esc(d.id)}">Delete</button></span>` : ''}</div>
           <p>${esc(d.text)}</p>
         </div>
-        ${d.img ? `<div class="diary-pic" title="${esc(d.img.charId ? nice(byId.get(d.img.charId).Name) : 'This mon')}"><canvas data-diary-canvas data-mid="${esc(m.id)}" data-eid="${esc(d.id)}" aria-hidden="true"></canvas><span class="diary-pic-cap">${esc(picCaption(d.img))}</span></div>` : ''}
+        ${d.img ? `<div class="diary-pic" title="${esc(d.img.stage === 'custom' ? 'Your photo' : d.img.charId ? nice(byId.get(d.img.charId).Name) : 'This mon')}"><canvas data-diary-canvas data-mid="${esc(m.id)}" data-eid="${esc(d.id)}" aria-hidden="true"></canvas><span class="diary-pic-cap">${esc(picCaption(d.img))}</span></div>` : ''}
       </li>`).join('');
   }
   function memoriesHtml() {
     const today = todayStr();
     const flash = state.memFlash ? `<p class="paste-ok" role="status" data-mem-flash>✓ ${esc(state.memFlash)}</p>` : '';
-    const bar = `<div class="fav-bar"><button type="button" class="btn" data-mem-export${state.memories.length ? '' : ' disabled'}>💾 Download backup</button><button type="button" class="btn" data-mem-import>📂 Restore backup</button></div>`;
-    if (!state.memories.length) return `${bar}${flash}<div class="empty">No memories yet. Open a character from History or Favorites and tap the house icon next to its name to keep it here.</div>`;
+    if (!state.memories.length) return `${flash}<div class="empty">No memories yet. Open a character from History or Favorites and tap the house icon next to its name to keep it here.</div>`;
     return `
-      ${bar}${flash}
+      ${flash}
       <div class="mem-list">
         ${state.memories.map((m, i) => {
-          const body = byId.get(m.bodyId), eyes = byId.get(m.eyesId);
+          const body = byId.get(m.bodyId), id = esc(m.id), ed = state.memEdit.has(m.id);
+          const showTags = (m.tags && m.tags.length) || ed;
           return `
-          <article class="mem-card${m.death ? ' passed' : ''}" data-mem="${esc(m.id)}">
-            <canvas data-mem-canvas="${esc(m.id)}" aria-hidden="true"></canvas>
-            <div class="mem-main">
-              <div class="mem-head">
-                <input class="fav-input mem-name" data-mem-field="nickname" data-mid="${esc(m.id)}" value="${esc(m.nickname)}" maxlength="30" placeholder="Name your tama" aria-label="Name">
-                <button type="button" class="mini-btn mem-move" data-mem-move="${esc(m.id)}" data-dir="-1" aria-label="Move up" title="Move up"${i === 0 ? ' disabled' : ''}>▲</button><button type="button" class="mini-btn mem-move" data-mem-move="${esc(m.id)}" data-dir="1" aria-label="Move down" title="Move down"${i === state.memories.length - 1 ? ' disabled' : ''}>▼</button><button type="button" class="mini-btn" data-mem-delete="${esc(m.id)}">🗑️ Delete</button>
+          <article class="mem-card mc${m.death ? ' passed' : ''}${ed ? ' editing' : ''}" data-mem="${id}">
+            <div class="mc-head">
+              <div class="portrait"><canvas data-mem-canvas="${id}" aria-hidden="true"></canvas></div>
+              <div class="who">
+                <h3 class="name-text">${esc(m.nickname || body.Name)}</h3>
+                <p class="mem-sub">${esc(speciesLine(m))}</p>
+                ${showTags ? `<div class="mem-tags" data-tags="${id}"><span class="tags-list">${tagsHtml(m)}</span>${ed ? `<input class="tag-input" data-tag-input="${id}" maxlength="24" placeholder="＋ Add a tag" enterkeyhint="done" aria-label="Add a tag">` : ''}</div>` : ''}
               </div>
-              <p class="mem-sub">${esc(body.Name)} &middot; Eyes: ${esc(eyes.Name)} &middot; Body: ${esc(m.colorName)}</p>
-              <div class="mem-tags" data-tags="${esc(m.id)}"><span class="tags-list">${tagsHtml(m)}</span><input class="tag-input" data-tag-input="${esc(m.id)}" maxlength="24" placeholder="＋ Add a tag" enterkeyhint="done" aria-label="Add a tag"></div>
-              <div class="mem-fields">
-                <label>Date of birth<input type="date" data-mem-field="dob" data-mid="${esc(m.id)}" value="${esc(m.dob)}" max="${esc(m.death || today)}"></label>
-                <label><span class="mem-label-row">Death (if any)<button type="button" class="mem-clear" data-mem-clear-death="${esc(m.id)}"${m.death ? '' : ' hidden'}>Clear</button></span><input type="date" data-mem-field="death" data-mid="${esc(m.id)}" value="${esc(m.death)}" min="${esc(m.dob)}" max="${today}"></label>
-                <div class="mem-agebox"><span data-mem-agelabel>${m.death ? 'Lived' : 'Age'}</span><span class="mem-age" data-mem-age="${esc(m.id)}">${esc(ageText(ageOn(m, today)))}</span></div>
+              <div class="mc-actions">
+                <button type="button" class="icon-btn" data-mem-report="${id}" aria-label="Report card view" title="Report card view">📸</button>
+                <button type="button" class="icon-btn" data-mem-edit="${id}" aria-pressed="${ed}" aria-label="Edit" title="${ed ? 'Done editing' : 'Edit'}">✎</button>
               </div>
-              <p class="mem-msg" data-mem-msg role="alert"></p>
-              <details class="mem-diary" data-mem-details="${esc(m.id)}"${state.memOpen.has(m.id) ? ' open' : ''}>
-                <summary>Diary (${m.diary.length})</summary>
-                <div class="diary-new"><button type="button" class="btn" data-diary-new="${esc(m.id)}">＋ New entry</button></div>
-                <ul class="diary-list">${diaryItemsHtml(m)}</ul>
-              </details>
             </div>
+            <div class="mc-stats">
+              <span class="stat"><small>Born</small><b data-mem-born>${esc(prettyDate(m.dob))}</b></span>
+              <span class="stat"><small data-mem-agelabel>${m.death ? 'Lived' : 'Age'}</small><b data-mem-age="${id}">${esc(ageText(ageOn(m, today)))}</b></span>
+              <span class="stat"><small>Status</small><b data-mem-status>${esc(statusText(m))}</b></span>
+            </div>
+            <p class="mem-msg" data-mem-msg role="alert"></p>
+            ${ed ? `
+            <div class="edit-panel">
+              <div class="ep-row">
+                <input class="fav-input mem-name" data-mem-field="nickname" data-mid="${id}" value="${esc(m.nickname)}" maxlength="30" placeholder="Name your tama" aria-label="Name">
+                <button type="button" class="mini-btn mem-move" data-mem-move="${id}" data-dir="-1" aria-label="Move up" title="Move up"${i === 0 ? ' disabled' : ''}>▲</button>
+                <button type="button" class="mini-btn mem-move" data-mem-move="${id}" data-dir="1" aria-label="Move down" title="Move down"${i === state.memories.length - 1 ? ' disabled' : ''}>▼</button>
+                <button type="button" class="mini-btn" data-mem-delete="${id}">🗑️ Delete</button>
+              </div>
+              <div class="mem-fields">
+                <label>Date of birth<input type="date" data-mem-field="dob" data-mid="${id}" value="${esc(m.dob)}" max="${esc(m.death || today)}"></label>
+                <label><span class="mem-label-row">Death (if any)<button type="button" class="mem-clear" data-mem-clear-death="${id}"${m.death ? '' : ' hidden'}>Clear</button></span><input type="date" data-mem-field="death" data-mid="${id}" value="${esc(m.death)}" min="${esc(m.dob)}" max="${today}"></label>
+              </div>
+            </div>` : ''}
+            ${m.diary.length || ed ? `<div class="diary-h">Diary</div><ul class="diary-list">${diaryItemsHtml(m, ed)}</ul>` : ''}
+            ${ed ? `<button type="button" class="new-entry" data-diary-new="${id}">＋ New entry</button>` : ''}
           </article>`;
         }).join('')}
       </div>`;
@@ -1398,13 +1653,16 @@ function start(data, palettes, sprites) {
     const card = app.querySelector(`[data-mem="${m.id}"]`);
     if (!card) return;
     const today = todayStr();
+    const set = (sel, text) => { const el = card.querySelector(sel); if (el) el.textContent = text; };
     card.classList.toggle('passed', !!m.death);
-    card.querySelector('[data-mem-agelabel]').textContent = m.death ? 'Lived' : 'Age';
-    card.querySelector('[data-mem-age]').textContent = ageText(ageOn(m, today));
-    card.querySelector('[data-mem-field="dob"]').max = m.death || today;
-    const death = card.querySelector('[data-mem-field="death"]');
-    death.min = m.dob; death.max = today;
-    card.querySelector('[data-mem-clear-death]').hidden = !m.death;
+    set('.name-text', m.nickname || byId.get(m.bodyId).Name);
+    set('[data-mem-agelabel]', m.death ? 'Lived' : 'Age');
+    set('[data-mem-age]', ageText(ageOn(m, today)));
+    set('[data-mem-born]', prettyDate(m.dob));
+    set('[data-mem-status]', statusText(m));
+    const dob = card.querySelector('[data-mem-field="dob"]'); if (dob) dob.max = m.death || today;
+    const death = card.querySelector('[data-mem-field="death"]'); if (death) { death.min = m.dob; death.max = today; }
+    const clr = card.querySelector('[data-mem-clear-death]'); if (clr) clr.hidden = !m.death;
     card.querySelectorAll('[data-diary-age]').forEach(el => { el.textContent = ageText(ageOn(m, el.dataset.date)); });
   }
   function memMsg(m, text) {
@@ -1416,7 +1674,7 @@ function start(data, palettes, sprites) {
   }
   function exportMemories() {
     const payload = { app: 'tamapara-memories', version: 1, exported: todayStr(),
-      memories: state.memories.map(m => ({ id: m.id, bodyId: m.bodyId, eyesId: m.eyesId, colorName: m.colorName, nickname: m.nickname || '', dob: m.dob, death: m.death || '', diary: m.diary, tags: m.tags || [] })) };
+      memories: state.memories.map(m => ({ id: m.id, bodyId: m.bodyId, eyesId: m.eyesId, colorName: m.colorName, nickname: m.nickname || '', dob: m.dob, death: m.death || '', diary: m.diary, tags: m.tags || [] })), photos: Object.fromEntries([...referencedPhotos(false)].map(id => [id, photoData(id)]).filter(x => x[1])) };
     const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
     const a = document.createElement('a');
     a.href = url; a.download = `tama-memories-${todayStr()}.json`;
@@ -1433,6 +1691,11 @@ function start(data, palettes, sprites) {
         const data = JSON.parse(await file.text());
         const rows = Array.isArray(data) ? data : data && data.memories;
         if (!Array.isArray(rows)) throw new Error('not a memories backup');
+        if (data && data.photos && typeof data.photos === 'object') {
+          for (const [pid, url] of Object.entries(data.photos)) {
+            if (PHOTO_ID.test(pid) && typeof url === 'string' && url.startsWith('data:image/')) { try { localStorage.setItem(PHOTO_PREFIX + pid, url); } catch (er) { /* storage full */ } }
+          }
+        }
         let added = 0, updated = 0, skipped = 0;
         for (const r of rows) {
           const m = memoryFromRow(r);
@@ -1489,9 +1752,10 @@ function start(data, palettes, sprites) {
     sync.dirty.clear();
     const payload = {};
     for (const s of sections) payload[s] = { json: JSON.stringify(syncRows[s]()), ts: syncMeta.ts[s] || Date.now() };
+    await uploadPhotos();   // photos first, so other devices can find them when the entry arrives
     try {
       await sync.fs.setDoc(sync.ref, payload, { merge: true });
-      if (!sync.dirty.size) setSyncStatus('Synced');
+      if (!sync.dirty.size) setSyncStatus(sync.photoWarn ? 'Synced. Photos stay on this device: update Firestore rules' : 'Synced');
     } catch (e) {
       console.error('Sync push failed', e);
       sections.forEach(s => sync.dirty.add(s));
@@ -1568,6 +1832,7 @@ function start(data, palettes, sprites) {
         sync.dirty.add(s);
       }
       syncMeta.uid = sync.user.uid;
+      syncMeta.photos = {};
       changed = true;
     } else {
       for (const s of SYNC_SECTIONS) {
@@ -1580,6 +1845,7 @@ function start(data, palettes, sprites) {
     if (sync.dirty.size) { clearTimeout(sync.timer); sync.timer = setTimeout(syncPush, 300); setSyncStatus('Syncing…'); }
     else setSyncStatus('Synced');
     if (changed) renderSoon();
+    uploadPhotos().then(loadMissingPhotos);
   }
   async function initSync() {
     try {
@@ -2049,6 +2315,7 @@ function start(data, palettes, sprites) {
         <button type="button" data-view="history" aria-pressed="${state.view === 'history'}">History</button>
         <button type="button" data-view="favorites" aria-pressed="${state.view === 'favorites'}">Favorites (${state.favorites.size})</button>
         <button type="button" data-view="memories" aria-pressed="${state.view === 'memories'}">Memories (${state.memories.length})</button>
+        ${state.view === 'memories' ? `<button type="button" class="menu-btn" data-mem-menu aria-label="Backup and restore" title="Backup and restore">⋯</button><div class="mem-menu" data-mem-menu-box><button type="button" data-mem-export${state.memories.length ? '' : ' disabled'}>💾 Download backup</button><button type="button" data-mem-import>📂 Restore backup</button></div>` : ''}
       </div>
       ${state.view === 'memories' ? memoriesHtml() : state.view === 'favorites' ? favoritesHtml() : histList.length ? `
         <p class="hist-hint">Click a character to see how to grow it.</p>
@@ -2075,7 +2342,7 @@ function start(data, palettes, sprites) {
     app.querySelectorAll('canvas[data-eyes-thumb]').forEach(cv => drawInto(cv, eyesThumb(byId.get(Number(cv.dataset.eyesThumb)))));
     app.querySelectorAll('canvas[data-fav-canvas]').forEach(cv => drawInto(cv, state.favorites.get(cv.dataset.favCanvas).canvas));
     paintPictures(app);
-    app.querySelectorAll('canvas[data-mem-canvas]').forEach(cv => { const m = state.memories.find(x => x.id === cv.dataset.memCanvas); if (m) drawInto(cv, m.canvas); });
+    app.querySelectorAll('canvas[data-mem-canvas]').forEach(cv => { const m = state.memories.find(x => x.id === cv.dataset.memCanvas); if (m) { const t = trimCanvas(m.canvas); showScaled(cv, t, Math.min(1.7, 98 / t.height)); } });
     app.querySelectorAll('canvas[data-hist-canvas]').forEach(cv => drawInto(cv, state.history.get(cv.dataset.histCanvas).canvas));
     if (current) {
       drawInto(document.getElementById('preview-large'), current.canvas);
@@ -2088,6 +2355,10 @@ function start(data, palettes, sprites) {
 
   // ── Events (delegated, so re-rendering never loses handlers) ──────────────
   app.addEventListener('click', e => {
+    const menuBtn = e.target.closest('[data-mem-menu]');
+    const menuBox = app.querySelector('[data-mem-menu-box]');
+    if (menuBox) menuBox.classList.toggle('open', !!menuBtn && !menuBox.classList.contains('open'));
+    if (menuBtn) return;
     const pick = e.target.closest('[data-pick]');
     if (pick) {
       if (pick.dataset.pick in state.search) state.search[pick.dataset.pick] = '';
@@ -2117,6 +2388,14 @@ function start(data, palettes, sprites) {
     if (e.target.closest('[data-sync-signout]')) return syncSignOut();
     const houseEl = e.target.closest('[data-memory-add]');
     if (houseEl) { addMemory(houseEl.dataset.memoryAdd); render(); return scrollToTabs(); }
+    const memEditBtn = e.target.closest('[data-mem-edit]');
+    if (memEditBtn) {
+      const id = memEditBtn.dataset.memEdit;
+      if (state.memEdit.has(id)) state.memEdit.delete(id); else state.memEdit.add(id);
+      return render();
+    }
+    const memReport = e.target.closest('[data-mem-report]');
+    if (memReport) return openReport(memReport.dataset.memReport);
     if (e.target.closest('[data-mem-export]')) return exportMemories();
     if (e.target.closest('[data-mem-import]')) return importMemories();
     const tagDel = e.target.closest('[data-tag-del]');
@@ -2138,7 +2417,9 @@ function start(data, palettes, sprites) {
       if (m && confirm(`Delete ${nm} from Memories? Its diary will be deleted too.`) && confirm(`Are you really sure? ${nm} and its diary will be gone for good.`)) {
         state.memories = state.memories.filter(x => x !== m);
         state.memOpen.delete(m.id);
+        state.memEdit.delete(m.id);
         saveMemories();
+        gcPhotos();
         render();
       }
       return;
@@ -2156,7 +2437,7 @@ function start(data, palettes, sprites) {
     const diaryDel = e.target.closest('[data-diary-del]');
     if (diaryDel) {
       const m = state.memories.find(x => x.id === diaryDel.dataset.diaryDel);
-      if (m && confirm('Delete this diary entry?')) { m.diary = m.diary.filter(d => d.id !== diaryDel.dataset.eid); saveMemories(); render(); }
+      if (m && confirm('Delete this diary entry?')) { m.diary = m.diary.filter(d => d.id !== diaryDel.dataset.eid); saveMemories(); gcPhotos(); render(); }
       return;
     }
     const favBtn = e.target.closest('[data-fav-toggle]');
@@ -2214,6 +2495,72 @@ function start(data, palettes, sprites) {
     render();
   });
 
+  // ── Report card view: a clean full-screen card for screenshots ─────────────
+  const rcDialog = document.getElementById('rc-dialog');
+  const RC_THEMES = [['pastel', 'Pastel'], ['night', 'Night'], ['paper', 'Paper']];
+  let rcTheme = (() => { try { const t = localStorage.getItem('tamapara-rc-theme'); return RC_THEMES.some(x => x[0] === t) ? t : 'pastel'; } catch (e) { return 'pastel'; } })();
+  let rcMid = null, rcHide = false;
+  function reportHtml(m) {
+    const body = byId.get(m.bodyId), shown = sortedDiary(m).slice(0, 3), more = m.diary.length - shown.length, today = todayStr();
+    return `
+    <div class="rc${m.death ? ' passed' : ''}" id="rcCard">
+      <div class="rc-ribbon">TAMA REPORT CARD</div>
+      <div class="rc-portrait"><canvas data-rc-sprite aria-hidden="true"></canvas></div>
+      <h2>${esc(m.nickname || body.Name)}</h2>
+      <div class="rc-species">${esc(speciesLine(m))}</div>
+      ${m.death ? '<div class="rc-gone">🕊️ Gone but never forgotten</div>' : ''}
+      ${m.tags && m.tags.length ? `<div class="rc-tags">${tagsHtml(m).replace(/<button[^>]*>.*?<\/button>/g, '')}</div>` : ''}
+      <div class="rc-stats">
+        <div class="rc-stat"><small>Born</small><b>${esc(prettyDate(m.dob))}</b></div>
+        <div class="rc-stat"><small>${m.death ? 'Lived' : 'Age'}</small><b>${esc(ageText(ageOn(m, today)))}</b></div>
+        <div class="rc-stat"><small>${m.death ? 'Passed' : 'Status'}</small><b>${m.death ? esc(prettyDate(m.death)) : '💚 Alive'}</b></div>
+      </div>
+      ${shown.length ? `<div class="rc-diary"><h4>Diary highlights</h4>
+        ${shown.map(d => `<div class="rc-entry"><div><div class="meta">${esc(prettyDate(d.date))}${d.img ? ' · ' + esc(picCaption(d.img)) : ''}</div><p>${esc(d.text)}</p></div>${d.img ? `<canvas data-rc-diary data-eid="${esc(d.id)}" aria-hidden="true"></canvas>` : ''}</div>`).join('')}
+        ${more > 0 ? `<p class="rc-more">+ ${more} more in the diary</p>` : ''}
+      </div>` : ''}
+      <div class="rc-foot">Tamagotchi Paradise · iceomort.github.io/tamaparageneratorv2</div>
+    </div>
+    <p class="rc-hint">Tap the card to hide the buttons for a clean screenshot. Tap again to bring them back.</p>`;
+  }
+  function setRcUi() {
+    const o = rcDialog.querySelector('.rc-overlay');
+    if (!o) return;
+    o.dataset.rc = rcTheme;
+    rcDialog.querySelectorAll('[data-rc-theme]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.rcTheme === rcTheme)));
+    rcDialog.querySelectorAll('.rc-ui').forEach(el => el.classList.toggle('gone', rcHide));
+    const hint = rcDialog.querySelector('.rc-hint');
+    if (hint) hint.style.visibility = rcHide ? 'hidden' : 'visible';
+  }
+  function paintReportImages() {
+    const m = state.memories.find(x => x.id === rcMid);
+    if (!m) return;
+    rcDialog.querySelectorAll('canvas[data-rc-sprite]').forEach(cv => { const t = trimCanvas(m.canvas); showScaled(cv, t, Math.min(3, 165 / t.height)); });
+    rcDialog.querySelectorAll('canvas[data-rc-diary]').forEach(cv => {
+      const d = m.diary.find(x => x.id === cv.dataset.eid), c = d && d.img && diaryImageCanvas(m, d.img);
+      if (c) showEntryImage(cv, c, d.img, 1.5);
+    });
+  }
+  function openReport(mid) {
+    const m = state.memories.find(x => x.id === mid);
+    if (!m) return;
+    rcMid = mid; rcHide = false;
+    rcDialog.innerHTML = `
+      <div class="rc-overlay" data-rc="${rcTheme}"><div class="rc-scroll">${reportHtml(m)}</div></div>
+      <div class="rc-ui top"><button type="button" data-rc-close>✕ Close</button></div>
+      <div class="rc-ui bottom">${RC_THEMES.map(([k, l]) => `<button type="button" data-rc-theme="${k}" aria-pressed="${k === rcTheme}">${l}</button>`).join('')}</div>`;
+    paintReportImages();
+    setRcUi();
+    if (!rcDialog.open) rcDialog.showModal();
+    rcDialog.querySelector('.rc-scroll').scrollTop = 0;
+  }
+  rcDialog.addEventListener('click', e => {
+    if (e.target.closest('[data-rc-close]')) { rcDialog.close(); return; }
+    const th = e.target.closest('[data-rc-theme]');
+    if (th) { rcTheme = th.dataset.rcTheme; try { localStorage.setItem('tamapara-rc-theme', rcTheme); } catch (er) { /* ignore */ } setRcUi(); return; }
+    if (e.target.closest('#rcCard')) { rcHide = !rcHide; setRcUi(); }
+  });
+
   // ── Diary entry pop-up (new and edit) ───────────────────────────────────────
   const diaryDialog = document.getElementById('diary-dialog');
   let ddState = { mid: null, eid: null };
@@ -2224,7 +2571,7 @@ function start(data, palettes, sprites) {
     if (!m || (eid && !entry)) return;
     ddState = { mid, eid: eid || null };
     const im = entry && entry.img;
-    state.memDraft[mid] = im ? { stage: im.stage, charId: im.charId || null, mood: im.mood || '' } : { stage: 'none', charId: null, mood: '' };
+    state.memDraft[mid] = im ? { stage: im.stage, charId: im.charId || null, photo: im.photo || null, mood: im.mood || '' } : { stage: 'none', charId: null, photo: null, mood: '' };
     const today = todayStr();
     diaryDialog.innerHTML = `
       <div class="dd-head"><h3 id="dd-title">${entry ? 'Edit diary entry' : 'New diary entry'}<span class="dd-sub">${esc(m.nickname || byId.get(m.bodyId).Name)}</span></h3><button type="button" class="guide-close" data-dd-close aria-label="Close">✕</button></div>
@@ -2248,7 +2595,7 @@ function start(data, palettes, sprites) {
     const text = ta.value.trim();
     if (!text) { ddMsg('Write something first.'); ta.focus(); return; }
     const dr = draftOf(m.id);
-    if (dr.stage !== 'none' && dr.stage !== 'adult' && !dr.charId) { ddMsg(`Pick which ${dr.stage} form first, or choose None.`); return; }
+    if (dr.stage !== 'none' && dr.stage !== 'adult' && dr.stage !== 'custom' && !dr.charId) { ddMsg(`Pick which ${dr.stage} form first, or choose None.`); return; }
     const im = draftImg(m), date = ISO.test(dt.value) ? dt.value : todayStr();
     if (ddState.eid) {
       const e = m.diary.find(x => x.id === ddState.eid);
@@ -2278,6 +2625,16 @@ function start(data, palettes, sprites) {
       d.charId = list.length === 1 ? list[0].Id : null;   // a single choice (the baby) is picked for you
       return refreshPicker(picStage.dataset.mid);
     }
+    const photoChip = e.target.closest('[data-pic-photo]');
+    if (photoChip) {
+      const d = draftOf(photoChip.dataset.picPhoto);
+      if (d.photo) { d.stage = 'custom'; return refreshPicker(photoChip.dataset.picPhoto); }
+      return choosePhoto(photoChip.dataset.picPhoto);
+    }
+    const photoNew = e.target.closest('[data-pic-photo-new]');
+    if (photoNew) return choosePhoto(photoNew.dataset.picPhotoNew);
+    const photoDel = e.target.closest('[data-pic-photo-remove]');
+    if (photoDel) { const d = draftOf(photoDel.dataset.picPhotoRemove); d.stage = 'none'; d.photo = null; return refreshPicker(photoDel.dataset.picPhotoRemove); }
     const picChar = e.target.closest('[data-pic-char]');
     if (picChar) { draftOf(picChar.dataset.mid).charId = Number(picChar.dataset.picChar); return refreshPicker(picChar.dataset.mid); }
     const picMood = e.target.closest('[data-pic-mood]');
@@ -2287,10 +2644,30 @@ function start(data, palettes, sprites) {
       return refreshPicker(picMood.dataset.mid);
     }
   });
+  // Pick an image file, shrink it, store it on this device and use it for this entry
+  function choosePhoto(mid) {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*';
+    inp.addEventListener('change', async () => {
+      const file = inp.files && inp.files[0];
+      if (!file) return;
+      try {
+        const { dataUrl, canvas } = await shrinkPhoto(file);
+        const id = newPhotoId();
+        try { localStorage.setItem(PHOTO_PREFIX + id, dataUrl); }
+        catch (e) { ddMsg('Not enough storage left on this device for another photo.'); return; }
+        photoCache.set(id, canvas);
+        const d = draftOf(mid);
+        d.stage = 'custom'; d.photo = id;
+        refreshPicker(mid);
+      } catch (e) { ddMsg('Could not read that image. Try a JPG or PNG.'); }
+    });
+    inp.click();
+  }
   diaryDialog.addEventListener('keydown', e => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.matches('[data-dd-text]')) { e.preventDefault(); saveDiaryDialog(); }
   });
-  diaryDialog.addEventListener('close', () => { if (ddState.mid) delete state.memDraft[ddState.mid]; });
+  diaryDialog.addEventListener('close', () => { if (ddState.mid) delete state.memDraft[ddState.mid]; gcPhotos(); });
 
   app.addEventListener('change', e => {
     const t = e.target;
@@ -2351,6 +2728,7 @@ function start(data, palettes, sprites) {
   restoreHistory();
   restoreFavorites();
   restoreMemories();
+  gcPhotos();
 
   app.addEventListener('keydown', e => {
     const t = e.target;
