@@ -429,6 +429,15 @@ dialog#diary-dialog::backdrop { background: rgba(0, 0, 0, .55); }
 .diary-actions { display: inline-flex; gap: 6px; }
 .diary-new { margin: 10px 0; }
 .diary-new .btn { width: auto; padding: 7px 16px; font-size: 14px; }
+/* memory tags */
+.mem-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.tags-list { display: contents; }
+.mem-tag { display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: hsl(var(--h) 80% 88%); color: hsl(var(--h) 65% 24%); }
+.mem-tag button { border: 0; background: none; color: inherit; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 5px; opacity: .55; }
+.mem-tag button:hover { opacity: 1; }
+.tag-input { width: 130px; padding: 3px 10px; font: inherit; font-size: 13px; border: 1px dashed var(--border); border-radius: 999px; background: transparent; color: var(--text); }
+.tag-input:focus { border-style: solid; border-color: var(--accent); outline: none; }
+@media (prefers-color-scheme: dark) { .mem-tag { background: hsl(var(--h) 45% 26%); color: hsl(var(--h) 85% 88%); } }
 </style>
 </head>
 <body>
@@ -489,7 +498,7 @@ const getCharType = c => CHAR_TYPES[c.Name.toUpperCase()] || 'other';
 
 const HISTORY_SHOWN = 18;
 const HISTORY_STORED = 100;
-const APP_VERSION = 'v4.6';          // bump when you ship a change
+const APP_VERSION = 'v4.7';          // bump when you ship a change
 const APP_UPDATED = '21 Oct 2026';    // and update the date here
 const STORAGE_KEY = 'tamapara-history-v1';
 const FAV_KEY = 'tamapara-favorites-v1';
@@ -908,6 +917,11 @@ function start(data, palettes, sprites) {
         canvas: generate(state.body, state.eyes, color),
       });
       saveHistory();
+    } else if ([...state.history.keys()].pop() !== key) {   // seen before: move it to the top so the current creature is always the latest
+      const entry = state.history.get(key);
+      state.history.delete(key);
+      state.history.set(key, entry);
+      saveHistory();
     }
     return state.history.get(key);
   }
@@ -1123,7 +1137,7 @@ function start(data, palettes, sprites) {
 
   function saveMemories() {
     try {
-      const rows = state.memories.map(m => ({ id: m.id, bodyId: m.bodyId, eyesId: m.eyesId, colorName: m.colorName, nickname: m.nickname || '', dob: m.dob, death: m.death || '', diary: m.diary }));
+      const rows = state.memories.map(m => ({ id: m.id, bodyId: m.bodyId, eyesId: m.eyesId, colorName: m.colorName, nickname: m.nickname || '', dob: m.dob, death: m.death || '', diary: m.diary, tags: m.tags || [] }));
       localStorage.setItem(MEM_KEY, JSON.stringify(rows));
     } catch (e) { /* storage unavailable; memories stay in memory */ }
     syncTouch('memories');
@@ -1139,7 +1153,7 @@ function start(data, palettes, sprites) {
       .filter(d => d && typeof d.text === 'string' && d.text.trim() && ISO.test(d.date || ''))
       .map(d => { const e = { id: typeof d.id === 'string' && d.id ? d.id : newId(), date: d.date, text: d.text.slice(0, 2000) }; const im = cleanImg(d.img); if (im) e.img = im; return e; });
     return { id: typeof r.id === 'string' && r.id ? r.id : newId(), bodyId: r.bodyId, eyesId: r.eyesId, colorName: r.colorName,
-             nickname: typeof r.nickname === 'string' ? r.nickname.slice(0, 30) : '', dob: r.dob, death, diary, canvas: generate(body, eyes, color) };
+             nickname: typeof r.nickname === 'string' ? r.nickname.slice(0, 30) : '', dob: r.dob, death, diary, tags: cleanTags(r.tags), canvas: generate(body, eyes, color) };
   }
   function restoreMemories() {
     try {
@@ -1160,7 +1174,7 @@ function start(data, palettes, sprites) {
     const e = state.history.get(key) || state.favorites.get(key);
     if (!e) return;
     const fav = state.favorites.get(key);
-    state.memories.unshift({ id: newId(), bodyId: e.bodyId, eyesId: e.eyesId, colorName: e.colorName, nickname: fav ? fav.nickname || '' : '', dob: todayStr(), death: '', diary: [], canvas: e.canvas });
+    state.memories.unshift({ id: newId(), bodyId: e.bodyId, eyesId: e.eyesId, colorName: e.colorName, nickname: fav ? fav.nickname || '' : '', dob: todayStr(), death: '', diary: [], tags: [], canvas: e.canvas });
     saveMemories();
     state.view = 'memories';
     state.renaming = null;
@@ -1304,6 +1318,35 @@ function start(data, palettes, sprites) {
     return [st ? st.label : '', im.mood ? EMOTES[im.mood].label : ''].filter(Boolean).join(' · ');
   }
 
+  // ── Tags: your own funny labels on each memory ──────────────────────────────
+  const TAG_MAX = 12, TAG_LEN = 24;
+  function cleanTags(arr) {
+    const seen = new Set(), out = [];
+    for (const t of Array.isArray(arr) ? arr : []) {
+      const text = String(t).trim().replace(/\s+/g, ' ').slice(0, TAG_LEN);
+      if (text && !seen.has(text.toLowerCase())) { seen.add(text.toLowerCase()); out.push(text); }
+    }
+    return out.slice(0, TAG_MAX);
+  }
+  // The same word always gets the same colour, on every device
+  const tagHue = t => { let h = 7; for (const ch of t.toLowerCase()) h = (Math.imul(h, 31) + ch.codePointAt(0)) >>> 0; return (h % 12) * 30 + 8; };   // 12 evenly spaced hues
+  const tagsHtml = m => (m.tags || []).map(t => `<span class="mem-tag" style="--h:${tagHue(t)}">${esc(t)}<button type="button" data-tag-del="${esc(m.id)}" data-tag="${esc(t)}" aria-label="Remove tag ${esc(t)}">×</button></span>`).join('');
+  function redrawTags(m) {
+    const el = app.querySelector(`[data-tags="${m.id}"] .tags-list`);
+    if (el) el.innerHTML = tagsHtml(m);
+  }
+  function addTag(mid, raw) {
+    const m = state.memories.find(x => x.id === mid);
+    if (!m) return;
+    const text = String(raw).trim().replace(/\s+/g, ' ').slice(0, TAG_LEN);
+    if (!text) return;
+    m.tags = m.tags || [];
+    if (m.tags.length >= TAG_MAX) { memMsg(m, `That is plenty of tags. Remove one to add another.`); return; }
+    if (!m.tags.some(t => t.toLowerCase() === text.toLowerCase())) m.tags.push(text);
+    saveMemories();
+    redrawTags(m);
+  }
+
   function diaryItemsHtml(m) {
     return [...m.diary].map((d, i) => [d, i]).sort((a, b) => b[0].date.localeCompare(a[0].date) || b[1] - a[1]).map(([d]) => `
       <li class="diary-entry">
@@ -1333,6 +1376,7 @@ function start(data, palettes, sprites) {
                 <button type="button" class="mini-btn mem-move" data-mem-move="${esc(m.id)}" data-dir="-1" aria-label="Move up" title="Move up"${i === 0 ? ' disabled' : ''}>▲</button><button type="button" class="mini-btn mem-move" data-mem-move="${esc(m.id)}" data-dir="1" aria-label="Move down" title="Move down"${i === state.memories.length - 1 ? ' disabled' : ''}>▼</button><button type="button" class="mini-btn" data-mem-delete="${esc(m.id)}">🗑️ Delete</button>
               </div>
               <p class="mem-sub">${esc(body.Name)} &middot; Eyes: ${esc(eyes.Name)} &middot; Body: ${esc(m.colorName)}</p>
+              <div class="mem-tags" data-tags="${esc(m.id)}"><span class="tags-list">${tagsHtml(m)}</span><input class="tag-input" data-tag-input="${esc(m.id)}" maxlength="24" placeholder="＋ Add a tag" enterkeyhint="done" aria-label="Add a tag"></div>
               <div class="mem-fields">
                 <label>Date of birth<input type="date" data-mem-field="dob" data-mid="${esc(m.id)}" value="${esc(m.dob)}" max="${esc(m.death || today)}"></label>
                 <label><span class="mem-label-row">Death (if any)<button type="button" class="mem-clear" data-mem-clear-death="${esc(m.id)}"${m.death ? '' : ' hidden'}>Clear</button></span><input type="date" data-mem-field="death" data-mid="${esc(m.id)}" value="${esc(m.death)}" min="${esc(m.dob)}" max="${today}"></label>
@@ -1372,7 +1416,7 @@ function start(data, palettes, sprites) {
   }
   function exportMemories() {
     const payload = { app: 'tamapara-memories', version: 1, exported: todayStr(),
-      memories: state.memories.map(m => ({ id: m.id, bodyId: m.bodyId, eyesId: m.eyesId, colorName: m.colorName, nickname: m.nickname || '', dob: m.dob, death: m.death || '', diary: m.diary })) };
+      memories: state.memories.map(m => ({ id: m.id, bodyId: m.bodyId, eyesId: m.eyesId, colorName: m.colorName, nickname: m.nickname || '', dob: m.dob, death: m.death || '', diary: m.diary, tags: m.tags || [] })) };
     const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
     const a = document.createElement('a');
     a.href = url; a.download = `tama-memories-${todayStr()}.json`;
@@ -1412,7 +1456,7 @@ function start(data, palettes, sprites) {
   const syncRows = {
     history: () => [...state.history.values()].slice(-HISTORY_STORED).map(h => [h.bodyId, h.eyesId, h.colorName]),
     favorites: () => [...state.favorites.values()].map(f => [f.bodyId, f.eyesId, f.colorName, f.nickname || '']),
-    memories: () => state.memories.map(m => ({ id: m.id, bodyId: m.bodyId, eyesId: m.eyesId, colorName: m.colorName, nickname: m.nickname || '', dob: m.dob, death: m.death || '', diary: m.diary })),
+    memories: () => state.memories.map(m => ({ id: m.id, bodyId: m.bodyId, eyesId: m.eyesId, colorName: m.colorName, nickname: m.nickname || '', dob: m.dob, death: m.death || '', diary: m.diary, tags: m.tags || [] })),
   };
   function setSyncStatus(text) {
     sync.status = text;
@@ -1489,6 +1533,7 @@ function start(data, palettes, sprites) {
         if (!r) { map.set(l.id, l); continue; }
         const have = new Set((r.diary || []).map(d => d.id));
         r.diary = [...(r.diary || []), ...(l.diary || []).filter(d => !have.has(d.id))];
+        r.tags = cleanTags([...(r.tags || []), ...(l.tags || [])]);
       }
       return [...map.values()];
     }
@@ -2074,6 +2119,12 @@ function start(data, palettes, sprites) {
     if (houseEl) { addMemory(houseEl.dataset.memoryAdd); render(); return scrollToTabs(); }
     if (e.target.closest('[data-mem-export]')) return exportMemories();
     if (e.target.closest('[data-mem-import]')) return importMemories();
+    const tagDel = e.target.closest('[data-tag-del]');
+    if (tagDel) {
+      const m = state.memories.find(x => x.id === tagDel.dataset.tagDel);
+      if (m) { m.tags = (m.tags || []).filter(t => t !== tagDel.dataset.tag); saveMemories(); redrawTags(m); }
+      return;
+    }
     const memMove = e.target.closest('[data-mem-move]');
     if (memMove) {
       const i = state.memories.findIndex(x => x.id === memMove.dataset.memMove), j = i + Number(memMove.dataset.dir);
@@ -2243,6 +2294,7 @@ function start(data, palettes, sprites) {
 
   app.addEventListener('change', e => {
     const t = e.target;
+    if (t.dataset.tagInput) { addTag(t.dataset.tagInput, t.value); t.value = ''; return; }
     if (t.dataset.memField) {
       const m = state.memories.find(x => x.id === t.dataset.mid);
       if (!m) return;
