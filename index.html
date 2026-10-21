@@ -374,12 +374,45 @@ dialog#guide { background: var(--surface); }
 .diary-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
 .diary-meta .mini-btn { margin: 0; }
 .diary-list p { margin: 4px 0 0; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
-@media (max-width: 560px) { .mem-card { grid-template-columns: 1fr; } .mem-card canvas { width: 96px; } }
+@media (max-width: 560px) { .mem-card { grid-template-columns: minmax(0, 1fr); } .mem-card canvas { width: 96px; } }
+.mem-main { min-width: 0; }
 /* cloud sync bar */
 .sync-bar { display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; font-size: 13px; color: var(--muted); }
 .sync-bar:empty { display: none; }
 .sync-bar .mini-btn { margin: 0; }
 .sync-err { color: #e5484d; font-weight: 600; }
+.mem-move { padding-left: 8px; padding-right: 8px; }
+.mem-move:disabled { opacity: .3; cursor: default; }
+/* diary pictures */
+.pic-pick { display: grid; gap: 8px; padding: 8px 10px; border: 1px dashed var(--border); border-radius: 10px; }
+.pic-row { display: flex; align-items: flex-start; gap: 10px; }
+.pic-label { flex: 0 0 56px; padding-top: 5px; font-size: 12px; color: var(--muted); }
+.pic-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pic-chip, .pic-mood, .pic-char { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); cursor: pointer; }
+.pic-chip { padding: 3px 12px; border-radius: 999px; font-size: 13px; }
+.pic-mood { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 6px; border-radius: 8px; font-size: 10px; min-width: 52px; }
+.pic-mood canvas { width: 22px; height: 22px; image-rendering: pixelated; }
+.pic-char { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; width: 78px; padding: 4px; border-radius: 8px; font-size: 10px; line-height: 1.15; text-align: center; }
+.pic-char canvas { image-rendering: pixelated; }
+.pic-char span { overflow-wrap: anywhere; }
+.pic-chars { display: flex; flex-wrap: wrap; gap: 6px; max-height: 230px; overflow-y: auto; padding: 2px; }
+.pic-chip[aria-pressed="true"], .pic-mood[aria-pressed="true"], .pic-char[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
+.pic-chip:hover, .pic-mood:hover, .pic-char:hover { border-color: var(--accent); }
+.pic-note { margin: 0; font-size: 12px; color: var(--muted); }
+.pic-preview { display: flex; justify-content: flex-start; padding-left: 66px; }
+.pic-preview canvas, .diary-pic canvas { image-rendering: pixelated; }
+.diary-entry { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; }
+.diary-main { flex: 1; min-width: 0; }
+.diary-pic { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.diary-pic-cap { font-size: 11px; color: var(--muted); text-align: center; }
+@media (max-width: 560px) { .pic-label { flex-basis: 100%; padding-top: 0; } .pic-row { flex-wrap: wrap; } .pic-preview { padding-left: 0; } }
+/* quick match chip beside the current body or eyes */
+.badge-row { flex-wrap: wrap; }
+.match-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 8px; border: 1px dashed var(--accent); border-radius: 999px; background: transparent; color: var(--accent-text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.match-chip:hover { background: var(--accent-soft); }
+.match-chip canvas { width: 28px; height: 28px; }
+.match-chip canvas.eyes-thumb { width: 52px; height: 26px; }
+.match-label { font-size: 11px; font-weight: 500; opacity: .8; }
 </style>
 </head>
 <body>
@@ -734,6 +767,7 @@ function start(data, palettes, sprites) {
     memories: [],              // { id, bodyId, eyesId, colorName, nickname, dob, death, diary: [{id,date,text}], canvas }
     memOpen: new Set(),        // ids of memories whose diary is expanded
     memFlash: '',              // short confirmation shown in the Memories tab
+    memDraft: {},              // diary picture being chosen per memory: { stage, charId, mood }
     filtersOpen: { body: false, eyes: false },   // whether each section's Filters panel is showing
     headerTamas: (() => {
       const adults = chars.filter(c => c.Stage === 5);
@@ -1086,7 +1120,7 @@ function start(data, palettes, sprites) {
     const death = ISO.test(r.death || '') && r.death >= r.dob ? r.death : '';
     const diary = (Array.isArray(r.diary) ? r.diary : [])
       .filter(d => d && typeof d.text === 'string' && d.text.trim() && ISO.test(d.date || ''))
-      .map(d => ({ id: typeof d.id === 'string' && d.id ? d.id : newId(), date: d.date, text: d.text.slice(0, 2000) }));
+      .map(d => { const e = { id: typeof d.id === 'string' && d.id ? d.id : newId(), date: d.date, text: d.text.slice(0, 2000) }; const im = cleanImg(d.img); if (im) e.img = im; return e; });
     return { id: typeof r.id === 'string' && r.id ? r.id : newId(), bodyId: r.bodyId, eyesId: r.eyesId, colorName: r.colorName,
              nickname: typeof r.nickname === 'string' ? r.nickname.slice(0, 30) : '', dob: r.dob, death, diary, canvas: generate(body, eyes, color) };
   }
@@ -1122,11 +1156,145 @@ function start(data, palettes, sprites) {
     return `<button type="button" class="house${mini ? ' mini' : ''}${n ? ' saved' : ''}" data-memory-add="${esc(key)}" aria-label="${esc(label)}" title="${esc(label)}">${HOUSE_SVG}</button>`;
   };
 
+  // ── Diary pictures: a stage portrait of this mon plus an optional mood ───────
+  const PIC_STAGES = [
+    { key: 'baby', label: 'Baby', stage: 2 },
+    { key: 'toddler', label: 'Toddler', stage: 3 },
+    { key: 'young', label: 'Young', stage: 4 },
+    { key: 'adult', label: 'Adult', stage: 5 },
+  ];
+  // 9x9 pixel faces: F = face colour, D = dark detail, T = tear, . = empty
+  const EMOTES = {
+    happy:     { label: 'Happy',     face: '#ffd23f', dark: '#1b1b2f', rows: ['..FFFFF..', '.FFFFFFF.', 'FFFFFFFFF', 'FFDFFFDFF', 'FFDFFFDFF', 'FFFFFFFFF', 'FDFFFFFDF', '.FDDDDDF.', '..FFFFF..'] },
+    sad:       { label: 'Sad',       face: '#74a9ff', dark: '#1b1b2f', rows: ['..FFFFF..', '.FFFFFFF.', 'FFFFFFFFF', 'FFDFFFDFF', 'FFDFFFDFF', 'FTFFFFFFF', 'FFFDDDFFF', '.FDFFFDF.', '..FFFFF..'] },
+    angry:     { label: 'Angry',     face: '#ff5a4f', dark: '#1b1b2f', rows: ['..FFFFF..', '.FFFFFFF.', 'FDFFFFFDF', 'FFDFFFDFF', 'FFFFFFFFF', 'FFDFFFDFF', 'FFFFFFFFF', '.FFDDDFF.', '..FFFFF..'] },
+    love:      { label: 'Love',      face: '#ff9ec7', dark: '#d7194f', rows: ['..FFFFF..', '.FFFFFFF.', 'FFFFFFFFF', 'FDFDFDFDF', 'FDDDFDDDF', 'FFDFFFDFF', 'FDFFFFFDF', '.FFDDDFF.', '..FFFFF..'] },
+    sleepy:    { label: 'Sleepy',    face: '#b9a4ff', dark: '#1b1b2f', rows: ['..FFFFF..', '.FFFFFFF.', 'FFFFFFFFF', 'FFFFFFFFF', 'FDDFFFDDF', 'FFFFFFFFF', 'FFFFDFFFF', '.FFFFFFF.', '..FFFFF..'] },
+    surprised: { label: 'Surprised', face: '#ffb347', dark: '#1b1b2f', rows: ['..FFFFF..', '.FFFFFFF.', 'FDDFFFDDF', 'FFDFFFDFF', 'FFDFFFDFF', 'FFFDDDFFF', 'FFFDFDFFF', '.FFDDDFF.', '..FFFFF..'] },
+    sick:      { label: 'Sick',      face: '#9bd86a', dark: '#1b1b2f', rows: ['..FFFFF..', '.FFFFFFF.', 'FFFFFFFFF', 'FDFDFDFDF', 'FFDFFFDFF', 'FDFDFDFDF', 'FFFFFFFFF', '.FDFDFDF.', '..FFFFF..'] },
+  };
+  const EMOTE_OUTLINE = '#1b1b2f';
+  // Draws an emote (9x9 plus a 1px outline = 11x11) with its top-left corner at x, y
+  function drawEmote(ctx, mood, x, y) {
+    const e = EMOTES[mood];
+    if (!e) return;
+    const g = e.rows;
+    const on = (r, c) => r >= 0 && r < 9 && c >= 0 && c < 9 && g[r][c] !== '.';
+    ctx.fillStyle = EMOTE_OUTLINE;
+    for (let r = -1; r <= 9; r++) for (let c = -1; c <= 9; c++) {
+      if (!on(r, c) && (on(r - 1, c) || on(r + 1, c) || on(r, c - 1) || on(r, c + 1))) ctx.fillRect(x + c + 1, y + r + 1, 1, 1);
+    }
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+      const k = g[r][c];
+      if (k === '.') continue;
+      ctx.fillStyle = k === 'F' ? e.face : k === 'D' ? e.dark : '#d6ecff';
+      ctx.fillRect(x + c + 1, y + r + 1, 1, 1);
+    }
+  }
+  // Crop a sprite canvas to its visible pixels
+  function trimCanvas(c) {
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    const d = ctx.getImageData(0, 0, c.width, c.height).data;
+    let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+    for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
+      if (d[(y * c.width + x) * 4 + 3]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    if (x1 < 0) return c;
+    const out = document.createElement('canvas');
+    out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
+    out.getContext('2d').drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+    return out;
+  }
+  function cleanImg(im) {
+    if (!im || typeof im !== 'object') return null;
+    const st = PIC_STAGES.find(s => s.key === im.stage);
+    if (!st) return null;
+    const mood = EMOTES[im.mood] ? im.mood : '';
+    if (st.key === 'adult') return { stage: 'adult', charId: null, mood };
+    const c = byId.get(Number(im.charId));
+    return c && c.Stage === st.stage ? { stage: st.key, charId: c.Id, mood } : null;
+  }
+  // The picture itself: the stage sprite, cropped, with the mood icon at its top right
+  function diaryImageCanvas(m, im) {
+    let srcCanvas;
+    if (im.stage === 'adult') srcCanvas = m.canvas;
+    else { const c = byId.get(im.charId); if (!c) return null; srcCanvas = thumb(c); }
+    const t = trimCanvas(srcCanvas);
+    const pad = im.mood ? 6 : 0;
+    const out = document.createElement('canvas');
+    out.width = t.width + pad; out.height = t.height + pad;
+    const ctx = out.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(t, 0, pad);
+    if (im.mood) drawEmote(ctx, im.mood, out.width - 11, 0);
+    return out;
+  }
+  const stageChars = n => data.Characters.filter(c => c.Stage === n).sort((a, b) => a.Name.localeCompare(b.Name));
+  const draftOf = id => state.memDraft[id] || (state.memDraft[id] = { stage: 'none', charId: null, mood: '' });
+  // The image the current draft would save, or null if it is not complete yet
+  function draftImg(m) {
+    const d = draftOf(m.id);
+    if (d.stage === 'none' && !d.mood) return null;
+    return cleanImg({ stage: d.stage === 'none' ? 'adult' : d.stage, charId: d.charId, mood: d.mood });
+  }
+  function showScaled(cv, source, scale) {
+    drawInto(cv, source);
+    cv.style.width = source.width * scale + 'px';
+    cv.style.height = source.height * scale + 'px';
+  }
+  function picHtml(m) {
+    const d = draftOf(m.id), mid = esc(m.id);
+    const stageBtns = [['none', 'None'], ...PIC_STAGES.map(s => [s.key, s.label])]
+      .map(([k, l]) => `<button type="button" class="pic-chip" data-pic-stage="${k}" data-mid="${mid}" aria-pressed="${d.stage === k}">${l}</button>`).join('');
+    let chars = '';
+    if (d.stage === 'adult') chars = '<p class="pic-note">Uses this mon\'s own look.</p>';
+    else if (d.stage !== 'none') {
+      const s = PIC_STAGES.find(x => x.key === d.stage);
+      chars = `<div class="pic-chars">${stageChars(s.stage).map(c => `<button type="button" class="pic-char" data-pic-char="${c.Id}" data-mid="${mid}" aria-pressed="${d.charId === c.Id}" title="${esc(nice(c.Name))}"><canvas data-pic-thumb="${c.Id}" aria-hidden="true"></canvas><span>${esc(nice(c.Name))}</span></button>`).join('')}</div>`;
+    }
+    const moods = Object.entries(EMOTES)
+      .map(([k, e]) => `<button type="button" class="pic-mood" data-pic-mood="${k}" data-mid="${mid}" aria-pressed="${d.mood === k}" title="${e.label}"><canvas data-mood-icon="${k}" aria-hidden="true"></canvas><span>${e.label}</span></button>`).join('');
+    const preview = d.stage !== 'none' || d.mood ? '<div class="pic-preview"><canvas data-pic-preview aria-hidden="true"></canvas></div>' : '';
+    return `<div class="pic-pick" data-pic="${mid}">
+      <div class="pic-row"><span class="pic-label">Picture</span><div class="pic-chips">${stageBtns}</div></div>
+      ${chars}
+      <div class="pic-row"><span class="pic-label">Mood</span><div class="pic-chips">${moods}</div></div>
+      ${preview}
+    </div>`;
+  }
+  function paintPictures(root) {
+    root.querySelectorAll('canvas[data-mood-icon]').forEach(cv => { cv.width = 11; cv.height = 11; drawEmote(cv.getContext('2d'), cv.dataset.moodIcon, 0, 0); });
+    root.querySelectorAll('canvas[data-pic-thumb]').forEach(cv => { const c = byId.get(Number(cv.dataset.picThumb)); if (c) showScaled(cv, trimCanvas(thumb(c)), 1); });
+    root.querySelectorAll('canvas[data-pic-preview]').forEach(cv => {
+      const box = cv.closest('[data-pic]'), m = box && state.memories.find(x => x.id === box.dataset.pic);
+      const im = m && draftImg(m), c = im && diaryImageCanvas(m, im);
+      if (c) showScaled(cv, c, 2);
+    });
+    root.querySelectorAll('canvas[data-diary-canvas]').forEach(cv => {
+      const m = state.memories.find(x => x.id === cv.dataset.mid), d = m && m.diary.find(x => x.id === cv.dataset.eid);
+      const c = d && d.img && diaryImageCanvas(m, d.img);
+      if (c) showScaled(cv, c, 2);
+    });
+  }
+  function refreshPicker(id) {
+    const m = state.memories.find(x => x.id === id), box = app.querySelector(`[data-pic="${id}"]`);
+    if (!m || !box) return;
+    box.outerHTML = picHtml(m);
+    paintPictures(app.querySelector(`[data-pic="${id}"]`).parentElement);
+  }
+  function picCaption(im) {
+    const st = PIC_STAGES.find(s => s.key === im.stage);
+    return [st ? st.label : '', im.mood ? EMOTES[im.mood].label : ''].filter(Boolean).join(' · ');
+  }
+
   function diaryItemsHtml(m) {
     return [...m.diary].map((d, i) => [d, i]).sort((a, b) => b[0].date.localeCompare(a[0].date) || b[1] - a[1]).map(([d]) => `
-      <li>
-        <div class="diary-meta"><span>${esc(d.date)} &middot; <span data-diary-age="${esc(d.id)}" data-date="${esc(d.date)}">${esc(ageText(ageOn(m, d.date)))}</span></span><button type="button" class="mini-btn" data-diary-del="${esc(m.id)}" data-eid="${esc(d.id)}">Delete</button></div>
-        <p>${esc(d.text)}</p>
+      <li class="diary-entry">
+        <div class="diary-main">
+          <div class="diary-meta"><span>${esc(d.date)} &middot; <span data-diary-age="${esc(d.id)}" data-date="${esc(d.date)}">${esc(ageText(ageOn(m, d.date)))}</span></span><button type="button" class="mini-btn" data-diary-del="${esc(m.id)}" data-eid="${esc(d.id)}">Delete</button></div>
+          <p>${esc(d.text)}</p>
+        </div>
+        ${d.img ? `<div class="diary-pic" title="${esc(d.img.charId ? nice(byId.get(d.img.charId).Name) : 'This mon')}"><canvas data-diary-canvas data-mid="${esc(m.id)}" data-eid="${esc(d.id)}" aria-hidden="true"></canvas><span class="diary-pic-cap">${esc(picCaption(d.img))}</span></div>` : ''}
       </li>`).join('');
   }
   function memoriesHtml() {
@@ -1137,7 +1305,7 @@ function start(data, palettes, sprites) {
     return `
       ${bar}${flash}
       <div class="mem-list">
-        ${state.memories.map(m => {
+        ${state.memories.map((m, i) => {
           const body = byId.get(m.bodyId), eyes = byId.get(m.eyesId);
           return `
           <article class="mem-card${m.death ? ' passed' : ''}" data-mem="${esc(m.id)}">
@@ -1145,7 +1313,7 @@ function start(data, palettes, sprites) {
             <div class="mem-main">
               <div class="mem-head">
                 <input class="fav-input mem-name" data-mem-field="nickname" data-mid="${esc(m.id)}" value="${esc(m.nickname)}" maxlength="30" placeholder="Name your tama" aria-label="Name">
-                <button type="button" class="mini-btn" data-mem-delete="${esc(m.id)}">🗑️ Delete</button>
+                <button type="button" class="mini-btn mem-move" data-mem-move="${esc(m.id)}" data-dir="-1" aria-label="Move up" title="Move up"${i === 0 ? ' disabled' : ''}>▲</button><button type="button" class="mini-btn mem-move" data-mem-move="${esc(m.id)}" data-dir="1" aria-label="Move down" title="Move down"${i === state.memories.length - 1 ? ' disabled' : ''}>▼</button><button type="button" class="mini-btn" data-mem-delete="${esc(m.id)}">🗑️ Delete</button>
               </div>
               <p class="mem-sub">${esc(body.Name)} &middot; Eyes: ${esc(eyes.Name)} &middot; Body: ${esc(m.colorName)}</p>
               <div class="mem-fields">
@@ -1159,6 +1327,7 @@ function start(data, palettes, sprites) {
                 <div class="diary-add">
                   <input type="date" data-diary-date="${esc(m.id)}" value="${today}" max="${today}" aria-label="Entry date">
                   <textarea data-diary-text="${esc(m.id)}" rows="3" maxlength="2000" placeholder="What happened today? (Ctrl or Cmd + Enter to add)" aria-label="Diary entry"></textarea>
+                  ${picHtml(m)}
                   <button type="button" class="btn" data-diary-add="${esc(m.id)}">Add entry</button>
                 </div>
                 <ul class="diary-list">${diaryItemsHtml(m)}</ul>
@@ -1689,6 +1858,12 @@ function start(data, palettes, sprites) {
     const badge = selected
       ? `<div class="selected-badge"><canvas ${thumbAttr(selected.Id)}></canvas>${esc(selected.Name)}</div>`
       : '';
+    // One-tap shortcut: the character the OTHER card is using, so body and eyes can be matched quickly
+    const other = isEyes ? state.body : state.eyes;
+    const matchChar = other && selected && other.Id !== selected.Id && list.some(c => c.Id === other.Id) ? other : null;
+    const match = matchChar
+      ? `<button type="button" class="match-chip" data-pick="${key}" data-id="${matchChar.Id}" title="Use ${isEyes ? 'the eyes' : 'the body'} of ${esc(matchChar.Name)}"><span class="match-label">Match ${isEyes ? 'body' : 'eyes'}</span><canvas ${thumbAttr(matchChar.Id)}></canvas>${esc(matchChar.Name)}</button>`
+      : '';
     const q = (state.search[key] || '').trim().toLowerCase();
     const shown = q ? list.filter(c => c.Name.toLowerCase().includes(q)) : list;
     const cards = shown.map(c => `
@@ -1720,7 +1895,7 @@ function start(data, palettes, sprites) {
           <h3 class="pick-title">${label}</h3>
           <button type="button" class="ftoggle${nFilters ? ' on' : ''}" data-fopen="${key}" aria-expanded="${fopen}">Filters${nFilters ? ` <span class="fcount">${nFilters}</span>` : ''}</button>
         </div>
-        <div class="badge-row"><button type="button" class="dice-btn" data-action="${isEyes ? 'rand-eyes' : 'rand-body'}" aria-label="Random ${label.toLowerCase()}" title="Random ${label.toLowerCase()}">🎲</button>${badge}</div>
+        <div class="badge-row"><button type="button" class="dice-btn" data-action="${isEyes ? 'rand-eyes' : 'rand-body'}" aria-label="Random ${label.toLowerCase()}" title="Random ${label.toLowerCase()}">🎲</button>${badge}${match}</div>
         <div class="filters-panel"${fopen ? '' : ' hidden'}>${includeRow}${moodRow}</div>
         <details class="picker" data-details="${key}"${openPickers.has(key) ? ' open' : ''}>
           <summary>Browse ${label.toLowerCase()} (${list.length})</summary>
@@ -1842,6 +2017,7 @@ function start(data, palettes, sprites) {
     app.querySelectorAll('canvas[data-swatch]').forEach(cv => drawInto(cv, swatch(Number(cv.dataset.swatch))));
     app.querySelectorAll('canvas[data-eyes-thumb]').forEach(cv => drawInto(cv, eyesThumb(byId.get(Number(cv.dataset.eyesThumb)))));
     app.querySelectorAll('canvas[data-fav-canvas]').forEach(cv => drawInto(cv, state.favorites.get(cv.dataset.favCanvas).canvas));
+    paintPictures(app);
     app.querySelectorAll('canvas[data-mem-canvas]').forEach(cv => { const m = state.memories.find(x => x.id === cv.dataset.memCanvas); if (m) drawInto(cv, m.canvas); });
     app.querySelectorAll('canvas[data-hist-canvas]').forEach(cv => drawInto(cv, state.history.get(cv.dataset.histCanvas).canvas));
     if (current) {
@@ -1886,6 +2062,29 @@ function start(data, palettes, sprites) {
     if (houseEl) { addMemory(houseEl.dataset.memoryAdd); render(); return scrollToTabs(); }
     if (e.target.closest('[data-mem-export]')) return exportMemories();
     if (e.target.closest('[data-mem-import]')) return importMemories();
+    const picStage = e.target.closest('[data-pic-stage]');
+    if (picStage) {
+      const d = draftOf(picStage.dataset.mid), k = picStage.dataset.picStage;
+      d.stage = k;
+      const st = PIC_STAGES.find(s => s.key === k);
+      const list = st && st.key !== 'adult' ? stageChars(st.stage) : [];
+      d.charId = list.length === 1 ? list[0].Id : null;   // a single choice (the baby) is picked for you
+      return refreshPicker(picStage.dataset.mid);
+    }
+    const picChar = e.target.closest('[data-pic-char]');
+    if (picChar) { draftOf(picChar.dataset.mid).charId = Number(picChar.dataset.picChar); return refreshPicker(picChar.dataset.mid); }
+    const picMood = e.target.closest('[data-pic-mood]');
+    if (picMood) {
+      const d = draftOf(picMood.dataset.mid);
+      d.mood = d.mood === picMood.dataset.picMood ? '' : picMood.dataset.picMood;
+      return refreshPicker(picMood.dataset.mid);
+    }
+    const memMove = e.target.closest('[data-mem-move]');
+    if (memMove) {
+      const i = state.memories.findIndex(x => x.id === memMove.dataset.memMove), j = i + Number(memMove.dataset.dir);
+      if (i >= 0 && j >= 0 && j < state.memories.length) { [state.memories[i], state.memories[j]] = [state.memories[j], state.memories[i]]; saveMemories(); render(); }
+      return;
+    }
     const memDel = e.target.closest('[data-mem-delete]');
     if (memDel) {
       const m = state.memories.find(x => x.id === memDel.dataset.memDelete);
@@ -1974,7 +2173,12 @@ function start(data, palettes, sprites) {
     const ta = card.querySelector('[data-diary-text]'), dt = card.querySelector('[data-diary-date]');
     const text = ta.value.trim();
     if (!text) { ta.focus(); return; }
-    m.diary.push({ id: newId(), date: ISO.test(dt.value) ? dt.value : todayStr(), text: text.slice(0, 2000) });
+    const dr = draftOf(id), im = draftImg(m);
+    if (dr.stage !== 'none' && dr.stage !== 'adult' && !dr.charId) { memMsg(m, `Pick which ${dr.stage} form first, or choose None.`); return; }
+    const entry = { id: newId(), date: ISO.test(dt.value) ? dt.value : todayStr(), text: text.slice(0, 2000) };
+    if (im) entry.img = im;
+    m.diary.push(entry);
+    delete state.memDraft[id];
     state.memOpen.add(id);
     saveMemories();
     render();
